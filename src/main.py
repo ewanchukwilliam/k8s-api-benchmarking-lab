@@ -250,6 +250,13 @@ async def get_container_metrics(container_id: str):
 if __name__ == "__main__":
     port = int(os.getenv("PORT", 8080))
     host = os.getenv("HOST", "0.0.0.0")
+    workers = int(os.getenv("WORKERS", 4))  # Default to 4 workers
 
-    logger.info(f"Starting Container Resource Monitor on {host}:{port}")
-    uvicorn.run(app, host=host, port=port)
+    logger.info(f"Starting Container Resource Monitor on {host}:{port} with {workers} workers")
+    uvicorn.run(
+        "main:app",
+        host=host,
+        port=port,
+        workers=workers,
+        log_level="info"
+    )
