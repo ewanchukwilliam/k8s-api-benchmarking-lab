@@ -10,7 +10,7 @@ the app itself is intentionaly simple ('\health' endpoint returing json) the fou
 
 ## Goals
 
-- [ ] Basic HTTP service with automated tests
+- [x] Basic HTTP service with automated tests
 - [ ] Containerization with docker
 - [ ] Kubernetes deployment with kubectl
 - [ ] autonomous provisioning with Ansible
@@ -37,5 +37,17 @@ Dockerfile
 README.md
 ```
 
+# endpoints
+curl http://localhost:8080
+curl http://localhost:8080/health
+curl http://localhost:8080/containers
+curl http://localhost:8080/metrics
 
+# build the image
+docker build -t health-service:local .
+
+# run multiple containers from same image
+docker run -d --name health-service -p 8080:8080 -v /var/run/docker.sock:/var/run/docker.sock health-service:local
+docker run -d --name health-service -p 8081:8080 -v /var/run/docker.sock:/var/run/docker.sock health-service:local
+docker run -d --name health-service -p 8082:8080 -v /var/run/docker.sock:/var/run/docker.sock health-service:local
 
