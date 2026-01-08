@@ -12,8 +12,7 @@ logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
     handlers=[
-        logging.FileHandler('container_metrics.log'),
-        logging.StreamHandler()
+        logging.StreamHandler()  # Only log to stdout for Kubernetes
     ]
 )
 logger = logging.getLogger(__name__)
