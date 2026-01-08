@@ -11,8 +11,8 @@ the app itself is intentionaly simple ('\health' endpoint returing json) the fou
 ## Goals
 
 - [x] Basic HTTP service with automated tests
-- [ ] Containerization with docker
-- [ ] Kubernetes deployment with kubectl
+- [x] Containerization with docker
+- [x] Kubernetes deployment with kubectl
 - [ ] autonomous provisioning with Ansible
 - [ ] CI/CD with GitLab for build and testing
 - [ ] VM practice
