@@ -51,3 +51,6 @@ docker run -d --name health-service -p 8080:8080 -v /var/run/docker.sock:/var/ru
 docker run -d --name health-service -p 8081:8080 -v /var/run/docker.sock:/var/run/docker.sock health-service:local
 docker run -d --name health-service -p 8082:8080 -v /var/run/docker.sock:/var/run/docker.sock health-service:local
 
+# run pytest 
+source .venv/bin/activate && pytest tests/ -v
+
