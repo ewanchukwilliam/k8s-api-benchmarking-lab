@@ -16,3 +16,22 @@ Helpful tutorials:
 YAML Structure Guide:
 - https://kubernetes.io/docs/concepts/overview/working-with-objects/kubernetes-objects/
 
+# deployment steps:
+
+kind create cluster --name devops-lab --config kind-config.yaml
+
+kind load docker-image health-service:local --name devops-lab
+
+kubectl apply -f k8s/
+
+kubectl run curl-test --image=curlimages/curl -i --tty --rm -- curl -s http://health-service/health
+
+# port forwarding
+
+kubectl port-forward service/health-service 8080:80
+
+curl -s http://localhost:8080/health | python3 -m json.tool
+
+# delete cluster
+
+kind delete cluster --name devops-lab
