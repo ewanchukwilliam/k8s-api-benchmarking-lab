@@ -24,3 +24,5 @@
   }
 
  // this means 10k requests per second holds comfortably at 9 pods with 0.5 cpu cores  
+// cool beans not running into issues of request port maxxing now. 1000 conccurrent users spamming my docker instance conncurrently is 10k requests per second for 9 cores aka 9 containers then stabilizes at 64% usage. 
+  // AKA THIS IS SO FUCKING COOL
