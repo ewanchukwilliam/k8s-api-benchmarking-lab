@@ -2,10 +2,10 @@
   import { check, sleep } from 'k6';
 
 
-  const num = 300;
+  const num = 1000;
   export const options = {
     stages: [
-      { duration: '10s', target: num/5 },   // Ramp to 20 users
+      // { duration: '10s', target: num/5 },   // Ramp to 20 users
       { duration: '20s', target: num/2 },    // Ramp to 50 users
       { duration: '1m', target: num },   // Ramp to 100 users
       { duration: '5m', target: num },   // Hold at 100
@@ -23,3 +23,4 @@
     sleep(0.1);  // 100ms think time = ~10 requests/second per user
   }
 
+ // this means 10k requests per second holds comfortably at 9 pods with 0.5 cpu cores  
