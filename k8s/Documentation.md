@@ -16,6 +16,16 @@ Helpful tutorials:
 YAML Structure Guide:
 - https://kubernetes.io/docs/concepts/overview/working-with-objects/kubernetes-objects/
 
+  kind cluster
+  ├─ Control plane node (runs controllers)
+  │  ├─ HPA controller (decides: need more pods?)
+  │  ├─ Deployment controller (ensures pods exist)
+  │  └─ Scheduler (picks which node for new pods)
+  │
+  └─ Worker nodes (run your workloads)
+     ├─ metrics-server pod (collects stats)
+     └─ health-service pods (your app, scaled by HPA)
+
 # deployment steps:
 
 kind create cluster --name devops-lab --config kind-config.yaml
