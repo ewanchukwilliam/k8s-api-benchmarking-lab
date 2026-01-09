@@ -1,15 +1,15 @@
   import http from 'k6/http';
-  import { check } from 'k6';
+  import { check, sleep } from 'k6';
 
 
-  const num = 100;
+  const num = 300;
   export const options = {
     stages: [
-      { duration: '10s', target: 0 },   
-      // { duration: '20s', target: num*2 },  
-      { duration: '2m', target: num },
-      // { duration: '10s', target: 0 },    
-      { duration: '10s', target: 0 },   
+      { duration: '10s', target: num/5 },   // Ramp to 20 users
+      { duration: '20s', target: num/2 },    // Ramp to 50 users
+      { duration: '1m', target: num },   // Ramp to 100 users
+      { duration: '5m', target: num },   // Hold at 100
+      { duration: '30s', target: 0 },    // Ramp down
     ],
   };
 
@@ -19,5 +19,7 @@
     check(res, {
       'status is 200': (r) => r.status === 200,
     });
+
+    sleep(0.1);  // 100ms think time = ~10 requests/second per user
   }
 
