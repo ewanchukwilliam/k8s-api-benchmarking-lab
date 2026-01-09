@@ -1,5 +1,6 @@
 import os
 import logging
+import asyncio
 from datetime import datetime
 from typing import Dict, List, Optional
 import docker
@@ -32,6 +33,9 @@ except Exception as e:
     logger.error(f"Failed to initialize Docker client: {e}")
     docker_client = None
 
+# Cache Docker status instead of checking on every request
+docker_status = {"connected": False}
+
 
 # Pydantic models for response schemas
 class HealthResponse(BaseModel):
@@ -62,6 +66,28 @@ class ContainerInfo(BaseModel):
     created: str
 
 
+async def check_docker_status():
+    """Background task to check Docker status every 5 seconds"""
+    while True:
+        try:
+            if docker_client:
+                await asyncio.to_thread(docker_client.ping)
+                docker_status["connected"] = True
+            else:
+                docker_status["connected"] = False
+        except Exception as e:
+            logger.warning(f"Docker ping failed: {e}")
+            docker_status["connected"] = False
+        await asyncio.sleep(5)
+
+
+@app.on_event("startup")
+async def startup():
+    """Start background Docker status checker"""
+    asyncio.create_task(check_docker_status())
+    logger.info("Background Docker status checker started")
+
+
 @app.get("/", response_model=dict)
 async def root():
     """Root endpoint with service information"""
@@ -79,16 +105,8 @@ async def root():
 
 @app.get("/health", response_model=HealthResponse)
 async def health_check():
-    """Health check endpoint"""
-    docker_connected = docker_client is not None
-
-    if docker_connected:
-        try:
-            docker_client.ping()
-            docker_connected = True
-        except Exception as e:
-            logger.warning(f"Docker ping failed: {e}")
-            docker_connected = False
+    """Health check endpoint - uses cached Docker status"""
+    docker_connected = docker_status["connected"]
 
     health_status = {
         "status": "ok" if docker_connected else "degraded",
@@ -249,7 +267,7 @@ async def get_container_metrics(container_id: str):
 if __name__ == "__main__":
     port = int(os.getenv("PORT", 8080))
     host = os.getenv("HOST", "0.0.0.0")
-    workers = int(os.getenv("WORKERS", 4))  # Default to 4 workers
+    workers = int(os.getenv("WORKERS", 3))  # Default to 4 workers
 
     logger.info(f"Starting Container Resource Monitor on {host}:{port} with {workers} workers")
     uvicorn.run(
