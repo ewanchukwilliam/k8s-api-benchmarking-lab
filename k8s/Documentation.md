@@ -45,3 +45,8 @@ kind delete cluster --name devops-lab
 <f> fullscreen logs
 <0> to go to all pods
 <1> to local pods in current namespace
+
+# add logging to k9s with metrics container manifest
+## ask gpt what line needs to be added to the metrics container manifest
+curl -LO https://github.com/kubernetes-sigs/metrics-server/releases/latest/download/components.yaml
+
