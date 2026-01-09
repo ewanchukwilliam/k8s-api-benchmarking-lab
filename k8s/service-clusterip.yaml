@@ -7,7 +7,7 @@ metadata:
     app: health-service
 
 spec:
-  type: NodePort
+  type: ClusterIP  # Internal service for Ingress to route to
 
   selector:
     app: health-service
@@ -15,4 +15,5 @@ spec:
   ports:
   - port: 80
     targetPort: 8080
-    nodePort: 30080
+    protocol: TCP
+    name: http

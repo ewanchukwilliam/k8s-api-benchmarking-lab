@@ -1,0 +1,31 @@
+# DEPRECATED: NodePort Service (Layer 4 load balancing)
+#
+# This has been replaced with Ingress (Layer 7 load balancing) for better
+# request distribution. See ingress-migration.md for details.
+#
+# Problem with NodePort:
+# - Load balances at connection level, not request level
+# - New pods from HPA don't receive traffic until clients reconnect
+# - HTTP Keep-Alive connections stay pinned to original pods
+#
+# Uncomment this if you want to use NodePort for local testing.
+# For production, use Ingress (see ingress.yaml).
+
+# apiVersion: v1
+# kind: Service
+#
+# metadata:
+#   name: health-service
+#   labels:
+#     app: health-service
+#
+# spec:
+#   type: NodePort
+#
+#   selector:
+#     app: health-service
+#
+#   ports:
+#   - port: 80
+#     targetPort: 8080
+#     nodePort: 30080

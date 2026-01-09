@@ -1,0 +1,35 @@
+apiVersion: eksctl.io/v1alpha5
+kind: ClusterConfig
+
+metadata:
+  name: health-service-cluster
+  region: us-east-1
+  version: "1.31"
+
+# Node groups (worker machines that run your pods)
+nodeGroups:
+  - name: health-service-nodes
+    instanceType: t2.micro
+    desiredCapacity: 1
+    minSize: 1
+    maxSize: 6
+    volumeSize: 8
+    ssh:
+      allow: false
+    labels:
+      role: worker
+    tags:
+      nodegroup-role: worker
+
+# VPC configuration (networking)
+vpc:
+  cidr: 10.0.0.0/16
+  nat:
+    gateway: Single
+  clusterEndpoints:
+    publicAccess: true
+    privateAccess: true
+
+# IAM configuration
+iam:
+  withOIDC: true
