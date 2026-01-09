@@ -6,15 +6,15 @@
   export const options = {
     stages: [
       // { duration: '10s', target: num/5 },   // Ramp to 20 users
-      { duration: '20s', target: num/2 },    // Ramp to 50 users
-      { duration: '1m', target: num },   // Ramp to 100 users
-      { duration: '5m', target: num },   // Hold at 100
-      { duration: '30s', target: 0 },    // Ramp down
+      { duration: '20s', target: num/2 },    
+      { duration: '1m', target: num },   
+      { duration: '5m', target: num },   
+      { duration: '30s', target: 0 },    
     ],
   };
 
   export default function () {
-    const res = http.get('http://localhost:30090/health');
+    const res = http.get('http://localhost:80/health');
 
     check(res, {
       'status is 200': (r) => r.status === 200,
