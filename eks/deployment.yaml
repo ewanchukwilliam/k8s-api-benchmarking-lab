@@ -7,7 +7,7 @@ metadata:
     app: health-service
 
 spec:
-  replicas: 5
+  replicas: 1
 
   selector:
     matchLabels:
@@ -21,8 +21,8 @@ spec:
     spec:
       containers:
       - name: health-service
-        image: health-service:local
-        imagePullPolicy: Never
+        image: 307218864628.dkr.ecr.us-east-1.amazonaws.com/health-service:latest
+        imagePullPolicy: Always
 
         ports:
         - containerPort: 8080
@@ -34,13 +34,4 @@ spec:
           limits:
             memory: "512Mi"
             cpu: "1000m"
-
-        volumeMounts:
-        - name: docker-sock
-          mountPath: /var/run/docker.sock
-
-      volumes:
-      - name: docker-sock
-        hostPath:
-          path: /var/run/docker.sock
   

@@ -2,18 +2,18 @@ apiVersion: eksctl.io/v1alpha5
 kind: ClusterConfig
 
 metadata:
-  name: health-service-cluster
+  name: health-service-cluster-v2
   region: us-east-1
   version: "1.31"
 
 # Node groups (worker machines that run your pods)
 nodeGroups:
   - name: health-service-nodes
-    instanceType: t2.micro
+    instanceType: t3.small
     desiredCapacity: 1
     minSize: 1
     maxSize: 6
-    volumeSize: 8
+    volumeSize: 20
     ssh:
       allow: false
     labels:
