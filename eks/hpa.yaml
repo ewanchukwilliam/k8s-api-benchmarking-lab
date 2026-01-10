@@ -1,3 +1,9 @@
+# HPA (Horizontal Pod Autoscaler): Automatically scales the number of pods based on CPU usage
+# - When CPU > 70%, it adds more pods
+# - When CPU is low, it scales down (minimum 2 pods)
+# - Needs metrics-server (components.yaml) to read CPU %
+# - Works with Cluster Autoscaler: HPA creates pods, Cluster Autoscaler creates nodes to fit them
+---
 apiVersion: autoscaling/v2
 kind: HorizontalPodAutoscaler
 

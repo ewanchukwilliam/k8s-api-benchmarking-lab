@@ -20,6 +20,18 @@ nodeGroups:
       role: worker
     tags:
       nodegroup-role: worker
+      # CLUSTER AUTOSCALER: These tags let the autoscaler find and manage this node group
+      k8s.io/cluster-autoscaler/enabled: "true"
+      k8s.io/cluster-autoscaler/health-service-cluster-v2: "owned"
+    iam:
+      attachPolicyARNs:
+        - arn:aws:iam::aws:policy/AmazonEKSWorkerNodePolicy
+        - arn:aws:iam::aws:policy/AmazonEKS_CNI_Policy
+        - arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly
+        - arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore
+      withAddonPolicies:
+        # CLUSTER AUTOSCALER: Gives nodes permission to launch/terminate EC2 instances
+        autoScaler: true
 
 # VPC configuration (networking)
 vpc:

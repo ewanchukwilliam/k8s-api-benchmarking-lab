@@ -31,6 +31,11 @@ echo "=== Creating EKS Cluster ==="
 eksctl create cluster -f "$SCRIPT_DIR/eks-cluster.yaml"
 echo ""
 
+echo "=== Deploying Cluster Autoscaler ==="
+# Automatically adds/removes EC2 nodes when pods can't fit or nodes are idle
+kubectl apply -f "$SCRIPT_DIR/cluster-autoscaler.yaml"
+echo ""
+
 echo "=== Deploying Application ==="
 kubectl apply -f "$SCRIPT_DIR/components.yaml"
 kubectl apply -f "$SCRIPT_DIR/deployment.yaml"

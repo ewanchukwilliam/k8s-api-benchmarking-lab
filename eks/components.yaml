@@ -1,3 +1,8 @@
+# METRICS SERVER: Collects CPU and memory usage from all pods
+# - Required for HPA to see CPU % and make scaling decisions
+# - Enables 'kubectl top pods' and 'kubectl top nodes' commands
+# - Updates every 15 seconds (see metric-resolution below)
+---
 apiVersion: v1
 kind: ServiceAccount
 metadata:
@@ -130,6 +135,9 @@ spec:
     metadata:
       labels:
         k8s-app: metrics-server
+        # FIX: Added these labels so the service can find the pod endpoints (was causing "no endpoints" error)
+        app.kubernetes.io/name: metrics-server
+        app.kubernetes.io/instance: metrics-server
     spec:
       containers:
       - args:
@@ -137,7 +145,8 @@ spec:
         - --secure-port=10250
         - --kubelet-preferred-address-types=InternalIP,ExternalIP,Hostname
         - --kubelet-use-node-status-port
-        - --metric-resolution=1s
+        # FIX CPU %: Changed from 1s to 15s (minimum is 10s, was causing crash). This is how often CPU metrics update.
+        - --metric-resolution=15s
         - --kubelet-insecure-tls
         image: registry.k8s.io/metrics-server/metrics-server:v0.8.0
         imagePullPolicy: IfNotPresent
