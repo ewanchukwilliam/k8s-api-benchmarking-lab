@@ -59,8 +59,8 @@ async def root():
 def get_process_metrics() -> Dict:
     """Get current process resource usage"""
     try:
-        
-        cpu_percent = process.cpu_percent(interval=0.1)
+        # Non-blocking CPU check (interval=0 returns instantly)
+        cpu_percent = process.cpu_percent(interval=0)
         memory_info = process.memory_info()
         memory_mb = round(memory_info.rss / 1024 / 1024, 2)
         memory_percent = round(process.memory_percent(), 2)
@@ -135,7 +135,7 @@ async def get_metrics():
 if __name__ == "__main__":
     port = int(os.getenv("PORT", 8080))
     host = os.getenv("HOST", "0.0.0.0")
-    workers = int(os.getenv("WORKERS", 3))  
+    workers = int(os.getenv("WORKERS", 10))  
 
     logger.info(f"Starting Container Resource Monitor on {host}:{port} with {workers} workers")
     uvicorn.run(

@@ -27,6 +27,27 @@ spec:
         ports:
         - containerPort: 8080
 
+        # READINESS PROBE: Prevents traffic until app is ready (fixes failures during scale-up)
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 8080
+          initialDelaySeconds: 5
+          periodSeconds: 5
+          timeoutSeconds: 5
+          successThreshold: 1
+          failureThreshold: 3
+
+        # LIVENESS PROBE: Restarts pod if app crashes (lenient to avoid killing under load)
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8080
+          initialDelaySeconds: 30
+          periodSeconds: 15
+          timeoutSeconds: 5
+          failureThreshold: 5
+
         resources:
           requests:
             memory: "256Mi"

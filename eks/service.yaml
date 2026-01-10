@@ -5,6 +5,9 @@ metadata:
   name: health-service
   labels:
     app: health-service
+  annotations:
+    # Use NLB instead of Classic ELB for better performance and faster provisioning
+    service.beta.kubernetes.io/aws-load-balancer-type: "nlb"
 
 spec:
   type: LoadBalancer

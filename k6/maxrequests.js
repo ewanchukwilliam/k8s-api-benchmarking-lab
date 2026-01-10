@@ -6,21 +6,23 @@
   export const options = {
     stages: [
       // { duration: '10s', target: num/5 },   // Ramp to 20 users
-      { duration: '20s', target: 0 },    
-      { duration: '5m', target: num },    
-      { duration: '1m', target: num },   
+      { duration: '10s', target: 0 },    
+      { duration: '30s', target: num },    
+      { duration: '5m', target: num },   
       { duration: '30s', target: 0 },    
     ],
   };
 
   export default function () {
-    const res = http.get('http://a042cd0d8d84f4f889faa881bc96ab9a-1874387452.us-east-1.elb.amazonaws.com/health');
+    const res = http.get('http://a09cc957f43ec4154bc745f9def963c6-5e285582f5c1f062.elb.us-east-1.amazonaws.com/health');
 
     check(res, {
       'status is 200': (r) => r.status === 200,
+      // 'response time < 100ms': (r) => r.timings.duration < 100,
     });
 
-    sleep(0.01);  // 100ms think time = ~10 requests/second per user
+    // Uncomment to add delay and measure steady-state throughput
+    // sleep(0.1);  // 100ms think time = ~10 requests/second per user
   }
 
  // this means 10k requests per second holds comfortably at 9 pods with 0.5 cpu cores  
