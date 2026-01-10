@@ -12,6 +12,7 @@
       { duration: '10s', target: 0 },    
     ],
   };
+  // managed to get to 1500 rps remotely vvery responsive scale up with 0 lost requests. 
 
   export default function () {
     const res = http.get('http://a09cc957f43ec4154bc745f9def963c6-5e285582f5c1f062.elb.us-east-1.amazonaws.com/health');
