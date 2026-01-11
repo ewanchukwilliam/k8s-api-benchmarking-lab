@@ -28,12 +28,29 @@ echo "ECR Image: $ECR_IMAGE"
 echo ""
 
 echo "=== Creating EKS Cluster ==="
-eksctl create cluster -f "$SCRIPT_DIR/eks-cluster.yaml"
-echo ""
+# eksctl create cluster -f "$SCRIPT_DIR/eks-cluster.yaml"
+# echo ""
+#
+# echo "=== Deploying Cluster Autoscaler ==="
+# # Automatically adds/removes EC2 nodes when pods can't fit or nodes are idle
+# kubectl apply -f "$SCRIPT_DIR/cluster-autoscaler.yaml"
+# echo ""
 
-echo "=== Deploying Cluster Autoscaler ==="
-# Automatically adds/removes EC2 nodes when pods can't fit or nodes are idle
-kubectl apply -f "$SCRIPT_DIR/cluster-autoscaler.yaml"
+echo "=== Deploying Metrics Server ==="
+# Always delete old metrics-server to avoid immutable selector conflicts
+echo "Cleaning up any existing metrics-server..."
+kubectl delete deployment metrics-server -n kube-system --ignore-not-found=true 2>/dev/null || true
+kubectl delete apiservice v1beta1.metrics.k8s.io --ignore-not-found=true 2>/dev/null || true
+sleep 2
+
+echo "Installing metrics-server from official source..."
+kubectl apply -f https://github.com/kubernetes-sigs/metrics-server/releases/latest/download/components.yaml
+
+# Patch for EKS (kubelet uses self-signed certs)
+kubectl patch deployment metrics-server -n kube-system --type='json' -p='[{"op":"add","path":"/spec/template/spec/containers/0/args/-","value":"--kubelet-insecure-tls"}]'
+
+echo "Waiting for metrics-server to be ready..."
+kubectl wait --for=condition=ready pod -l k8s-app=metrics-server -n kube-system --timeout=60s
 echo ""
 
 echo "=== Deploying Application ==="
@@ -69,7 +86,7 @@ fi
 # Deploy service with or without SSL
 if [ "$SSL_ENABLED" = true ]; then
   # Create service.yaml with SSL annotations
-  # kubectl apply -f "$SCRIPT_DIR/service-ssl.yaml"
+  kubectl apply -f "$SCRIPT_DIR/service-ssl.yaml"
   # rm "$SCRIPT_DIR/service-ssl.yaml"
   echo "⚠️  SSL Certificate exists but status: $CERT_STATUS"
 else
