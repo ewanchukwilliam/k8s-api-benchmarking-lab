@@ -37,20 +37,16 @@ kubectl apply -f "$SCRIPT_DIR/cluster-autoscaler.yaml"
 echo ""
 
 echo "=== Deploying Metrics Server ==="
-# Always delete old metrics-server to avoid immutable selector conflicts
-echo "Cleaning up any existing metrics-server..."
-kubectl delete deployment metrics-server -n kube-system --ignore-not-found=true 2>/dev/null || true
-kubectl delete apiservice v1beta1.metrics.k8s.io --ignore-not-found=true 2>/dev/null || true
-sleep 2
-
-echo "Installing metrics-server from official source..."
-kubectl apply -f https://github.com/kubernetes-sigs/metrics-server/releases/latest/download/components.yaml
-
-# Patch for EKS (kubelet uses self-signed certs)
-kubectl patch deployment metrics-server -n kube-system --type='json' -p='[{"op":"add","path":"/spec/template/spec/containers/0/args/-","value":"--kubelet-insecure-tls"}]'
+echo "Installing metrics-server as EKS managed add-on..."
+# Use EKS add-on (managed by AWS, properly lifecycle-managed, no orphaned resources)
+eksctl create addon --cluster health-service-cluster-v2 --name metrics-server --force --region us-east-1 || true
 
 echo "Waiting for metrics-server to be ready..."
-kubectl wait --for=condition=ready pod -l k8s-app=metrics-server -n kube-system --timeout=60s
+# Wait up to 2 minutes for pods to be ready
+kubectl wait --for=condition=ready pod -l k8s-app=metrics-server -n kube-system --timeout=120s || {
+  echo "⚠️  Metrics-server taking longer than expected, checking status..."
+  kubectl get pods -n kube-system -l k8s-app=metrics-server
+}
 echo ""
 
 echo "=== Deploying Application ==="
