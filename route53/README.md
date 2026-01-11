@@ -90,12 +90,66 @@ This will:
 - `maceio.ns.porkbun.com`
 - `salvador.ns.porkbun.com`
 
+## SSL Certificates (HTTPS)
+
+Once DNS is working with HTTP, you can add SSL certificates for HTTPS.
+
+### How SSL Certificate Validation Works
+
+1. **Request certificate** from AWS Certificate Manager (ACM)
+2. **AWS gives you a validation CNAME record** to prove you own the domain
+3. **Add CNAME to Route 53** (proves ownership)
+4. **AWS validates** by checking Route 53 for that record (5-30 minutes)
+5. **Certificate issued** and ready to use
+
+### Step-by-Step SSL Setup
+
+```bash
+cd route53
+
+# Step 1: Request certificate for api.codeseeker.dev
+./request-ssl-cert.sh
+
+# This creates a certificate request and shows you the validation record
+# Saves certificate ARN and validation info to .env.route53
+
+# Step 2: Add validation record to Route 53
+./add-ssl-validation.sh
+
+# This proves to AWS you own the domain
+# Adds CNAME record with validation token
+
+# Step 3: Wait for AWS to validate (5-30 minutes)
+./check-ssl-status.sh
+
+# Shows: PENDING_VALIDATION, ISSUED, or FAILED
+# Once ISSUED, certificate is ready to use
+```
+
+### What's Happening Under the Hood
+
+**DNS Validation Process:**
+- AWS ACM generates a unique validation token for your domain
+- Format: `_abc123.api.codeseeker.dev` → `_xyz789.acm-validations.aws.`
+- You add this as a CNAME record in Route 53
+- AWS's validation servers query Route 53 for this record
+- If found, AWS knows you control the domain's DNS
+- Certificate status changes from PENDING_VALIDATION to ISSUED
+
+**Why DNS validation?**
+- Proves you own the domain without email verification
+- Fully automated (no clicking email links)
+- Can be scripted and integrated into CI/CD
+
 ## Files
 
 - `setup-hosted-zone.sh` - One-time setup, creates hosted zone
 - `update-dns.sh` - Update DNS record (called by deploy script)
 - `cleanup-hosted-zone.sh` - Delete everything
-- `.env.route53` - Stores zone ID (gitignored)
+- `request-ssl-cert.sh` - Request SSL certificate from AWS ACM
+- `add-ssl-validation.sh` - Add DNS validation record to Route 53
+- `check-ssl-status.sh` - Check certificate validation status
+- `.env.route53` - Stores zone ID and certificate info (gitignored)
 - `README.md` - This file
 
 ## Common Issues

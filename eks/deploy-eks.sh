@@ -40,7 +40,77 @@ echo "=== Deploying Application ==="
 kubectl apply -f "$SCRIPT_DIR/components.yaml"
 kubectl apply -f "$SCRIPT_DIR/deployment.yaml"
 kubectl apply -f "$SCRIPT_DIR/hpa.yaml"
-kubectl apply -f "$SCRIPT_DIR/service.yaml"
+
+# Check if SSL certificate is available
+SSL_ENABLED=false
+if [ -f "$PROJECT_ROOT/route53/.env.route53" ]; then
+  source "$PROJECT_ROOT/route53/.env.route53"
+
+  if [ -n "$CERTIFICATE_ARN" ]; then
+    # Check certificate status
+    CERT_STATUS=$(aws acm describe-certificate \
+      --certificate-arn $CERTIFICATE_ARN \
+      --region us-east-1 \
+      --query 'Certificate.Status' \
+      --output text 2>/dev/null || echo "NOT_FOUND")
+
+    if [ "$CERT_STATUS" = "ISSUED" ]; then
+      SSL_ENABLED=true
+      echo "✅ SSL Certificate found and ready!"
+      echo "   Deploying with HTTPS enabled on port 443"
+      echo ""
+    else
+      echo "⚠️  SSL Certificate exists but status: $CERT_STATUS"
+      echo "   Deploying with HTTP only (port 80)"
+      echo ""
+    fi
+  fi
+fi
+
+# Deploy service with or without SSL
+if [ "$SSL_ENABLED" = true ]; then
+  # Create service.yaml with SSL annotations
+  cat > "$SCRIPT_DIR/service-ssl.yaml" <<EOF
+apiVersion: v1
+kind: Service
+
+metadata:
+  name: health-service
+  labels:
+    app: health-service
+  annotations:
+    # Use NLB instead of Classic ELB for better performance
+    service.beta.kubernetes.io/aws-load-balancer-type: "nlb"
+
+    # SSL Certificate from ACM
+    service.beta.kubernetes.io/aws-load-balancer-ssl-cert: "$CERTIFICATE_ARN"
+
+    # Enable SSL on port 443
+    service.beta.kubernetes.io/aws-load-balancer-ssl-ports: "443"
+
+    # Modern SSL policy (TLS 1.2+)
+    service.beta.kubernetes.io/aws-load-balancer-ssl-negotiation-policy: "ELBSecurityPolicy-TLS-1-2-2017-01"
+
+spec:
+  type: LoadBalancer
+
+  selector:
+    app: health-service
+
+  ports:
+  - name: http
+    port: 80
+    targetPort: 8080
+  - name: https
+    port: 443
+    targetPort: 8080
+EOF
+  kubectl apply -f "$SCRIPT_DIR/service-ssl.yaml"
+  rm "$SCRIPT_DIR/service-ssl.yaml"
+else
+  kubectl apply -f "$SCRIPT_DIR/service.yaml"
+fi
+
 kubectl wait --for=condition=ready pod --selector=app=health-service --timeout=120s
 echo ""
 
@@ -58,8 +128,25 @@ echo ""
 
 # Update DNS if Route 53 is configured
 if [ -f "$PROJECT_ROOT/route53/.env.route53" ]; then
+  source "$PROJECT_ROOT/route53/.env.route53"
   echo "=== Updating DNS ==="
   "$PROJECT_ROOT/route53/update-dns.sh" api "$NLB_HOSTNAME"
+  echo ""
+
+  echo "=== Your Endpoints ==="
+  echo "HTTP:  http://api.$DOMAIN/health"
+  if [ "$SSL_ENABLED" = true ]; then
+    echo "HTTPS: https://api.$DOMAIN/health ✅"
+  else
+    echo "HTTPS: Not configured yet"
+    echo ""
+    echo "To enable HTTPS:"
+    echo "  1. cd route53"
+    echo "  2. ./request-ssl-cert.sh"
+    echo "  3. ./add-ssl-validation.sh"
+    echo "  4. Wait 5-30 minutes for validation"
+    echo "  5. Redeploy cluster (./eks/deploy-eks.sh)"
+  fi
   echo ""
 else
   echo "=== DNS Update Skipped ==="
