@@ -69,8 +69,9 @@ fi
 # Deploy service with or without SSL
 if [ "$SSL_ENABLED" = true ]; then
   # Create service.yaml with SSL annotations
-  kubectl apply -f "$SCRIPT_DIR/service-ssl.yaml"
+  # kubectl apply -f "$SCRIPT_DIR/service-ssl.yaml"
   # rm "$SCRIPT_DIR/service-ssl.yaml"
+  echo "⚠️  SSL Certificate exists but status: $CERT_STATUS"
 else
   kubectl apply -f "$SCRIPT_DIR/service.yaml"
 fi
