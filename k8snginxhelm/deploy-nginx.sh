@@ -105,25 +105,6 @@ echo "=== LoadBalancer URL ==="
 kubectl get svc nginx-ingress-ingress-nginx-controller -n ingress-nginx -o jsonpath='{.status.loadBalancer.ingress[0].hostname}'
 echo ""
 
-echo ""
-echo "=== Cluster Status ==="
-kubectl get nodes
-kubectl get pods --all-namespaces
-echo ""
-
-echo "✅ EKS cluster fully deployed!"
-echo ""
-echo "Infrastructure deployed via Helm:"
-echo "  - EKS cluster: health-service-cluster-v2"
-echo "  - Metrics server: Enabled"
-echo "  - Cluster autoscaler: Enabled (1-6 nodes)"
-echo "  - NGINX ingress controller: Enabled (2-10 pods)"
-echo "  - Health service application: Enabled (1-10 pods with HPA)"
-echo ""
-echo "LoadBalancer URL:"
-kubectl get svc nginx-ingress-ingress-nginx-controller -n ingress-nginx -o jsonpath='{.status.loadBalancer.ingress[0].hostname}'
-echo ""
-
 echo "=== Deploying Health Service Application via Helm ==="
 
 # Check if SSL certificate is available
@@ -213,7 +194,28 @@ else
   echo ""
 fi
 
-echo "Cluster deployed successfully!"
+echo ""
+echo "Waiting for application to be ready..."
 
+echo "=== Health Check (HTTP/HTTPS) ==="
+MAX_RETRIES=60
+RETRY_COUNT=0
+while [ $RETRY_COUNT -lt $MAX_RETRIES ]; do
+  response=$(curl -s -o /dev/null -w "%{http_code}" http://$NLB_HOSTNAME/health 2>/dev/null || echo "000")
+  if [ "$response" = "200" ]; then
+    echo "✅ Application is ready!"
+    if [ "$SSL_ENABLED" = true ]; then
+      echo "   https://api.$DOMAIN/health"
+    else
+      echo "   http://$NLB_HOSTNAME/health"
+    fi
+    break
+  fi
+  RETRY_COUNT=$((RETRY_COUNT + 1))
+  sleep 5
+done
+if [ $RETRY_COUNT -eq $MAX_RETRIES ]; then
+  echo "⚠️  Timed out waiting for health endpoint. Check: kubectl get pods"
+fi
 
 trap 'ec=$?; echo; echo "❌ FAILED (exit $ec) at line $LINENO:"; echo "   $BASH_COMMAND"; echo; exit $ec' ERR
