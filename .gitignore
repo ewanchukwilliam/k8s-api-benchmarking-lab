@@ -9,4 +9,6 @@ container_metrics.log
 ./k8s/personalnotes.md
 .docker/
 .env.route53
+
+# contains the SSL certificate
 eks/service-ssl.yaml
