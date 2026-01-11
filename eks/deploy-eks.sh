@@ -13,24 +13,24 @@ REGION=$AWS_DEFAULT_REGION
 REPO_NAME="health-service"
 ECR_IMAGE="$AWS_ACCOUNT_ID.dkr.ecr.$REGION.amazonaws.com/$REPO_NAME:latest"
 
-# echo "=== Building and Pushing to ECR ==="
-# aws ecr create-repository --repository-name $REPO_NAME --region $REGION 2>/dev/null || true
-#
-# aws ecr get-login-password --region $REGION | \
-#   docker login --username AWS --password-stdin $AWS_ACCOUNT_ID.dkr.ecr.$REGION.amazonaws.com
+echo "=== Building and Pushing to ECR ==="
+aws ecr create-repository --repository-name $REPO_NAME --region $REGION 2>/dev/null || true
+
+aws ecr get-login-password --region $REGION | \
+  docker login --username AWS --password-stdin $AWS_ACCOUNT_ID.dkr.ecr.$REGION.amazonaws.com
 
 cd "$PROJECT_ROOT"
-# docker build -t health-service:local .
-# docker tag health-service:local $ECR_IMAGE
-# docker push $ECR_IMAGE
-#
-# echo "ECR Image: $ECR_IMAGE"
-# echo ""
-#
-# echo "=== Creating EKS Cluster ==="
-# eksctl create cluster -f "$SCRIPT_DIR/eks-cluster.yaml"
-# echo ""
-#
+docker build -t health-service:local .
+docker tag health-service:local $ECR_IMAGE
+docker push $ECR_IMAGE
+
+echo "ECR Image: $ECR_IMAGE"
+echo ""
+
+echo "=== Creating EKS Cluster ==="
+eksctl create cluster -f "$SCRIPT_DIR/eks-cluster.yaml"
+echo ""
+
 echo "=== Deploying Cluster Autoscaler ==="
 # Automatically adds/removes EC2 nodes when pods can't fit or nodes are idle
 kubectl apply -f "$SCRIPT_DIR/cluster-autoscaler.yaml"
@@ -70,43 +70,8 @@ fi
 # Deploy service with or without SSL
 if [ "$SSL_ENABLED" = true ]; then
   # Create service.yaml with SSL annotations
-  cat > "$SCRIPT_DIR/service-ssl.yaml" <<EOF
-apiVersion: v1
-kind: Service
-
-metadata:
-  name: health-service
-  labels:
-    app: health-service
-  annotations:
-    # Use NLB instead of Classic ELB for better performance
-    service.beta.kubernetes.io/aws-load-balancer-type: "nlb"
-
-    # SSL Certificate from ACM
-    service.beta.kubernetes.io/aws-load-balancer-ssl-cert: "$CERTIFICATE_ARN"
-
-    # Enable SSL on port 443
-    service.beta.kubernetes.io/aws-load-balancer-ssl-ports: "443"
-
-    # Modern SSL policy (TLS 1.2+)
-    service.beta.kubernetes.io/aws-load-balancer-ssl-negotiation-policy: "ELBSecurityPolicy-TLS-1-2-2017-01"
-
-spec:
-  type: LoadBalancer
-
-  selector:
-    app: health-service
-
-  ports:
-  - name: http
-    port: 80
-    targetPort: 8080
-  - name: https
-    port: 443
-    targetPort: 8080
-EOF
   kubectl apply -f "$SCRIPT_DIR/service-ssl.yaml"
-  rm "$SCRIPT_DIR/service-ssl.yaml"
+  # rm "$SCRIPT_DIR/service-ssl.yaml"
 else
   kubectl apply -f "$SCRIPT_DIR/service.yaml"
 fi

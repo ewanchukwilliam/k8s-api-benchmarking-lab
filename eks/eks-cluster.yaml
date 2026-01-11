@@ -2,7 +2,7 @@ apiVersion: eksctl.io/v1alpha5
 kind: ClusterConfig
 
 metadata:
-  name: health-service-cluster-v2
+  name: health-service-cluster
   region: us-east-1
   version: "1.31"
 
@@ -22,7 +22,7 @@ nodeGroups:
       nodegroup-role: worker
       # CLUSTER AUTOSCALER: These tags let the autoscaler find and manage this node group
       k8s.io/cluster-autoscaler/enabled: "true"
-      k8s.io/cluster-autoscaler/health-service-cluster-v2: "owned"
+      k8s.io/cluster-autoscaler/health-service-cluster: "owned"
     iam:
       attachPolicyARNs:
         - arn:aws:iam::aws:policy/AmazonEKSWorkerNodePolicy
