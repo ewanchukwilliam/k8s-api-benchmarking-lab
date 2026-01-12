@@ -1,0 +1,97 @@
+apiVersion: autoscaling/v2  # Kubernetes API version for HPA (v2 supports multiple metrics)
+kind: HorizontalPodAutoscaler  # Type of resource - automatically scales pod replicas
+
+metadata:  # Information about this HPA
+  name: health-service-hpa  # Name of this HPA (used in kubectl commands)
+  # namespace: default  # Optional: namespace (defaults to 'default')
+
+spec:  # HPA specification
+  scaleTargetRef:  # What resource this HPA scales
+    apiVersion: apps/v1  # API version of the target resource
+    kind: Deployment  # Type of resource to scale (Deployment, ReplicaSet, StatefulSet)
+    name: health-service  # Name of the Deployment → MUST MATCH deployment.yaml metadata.name (line 4)
+
+  minReplicas: 2  # Minimum number of pods (never scale below this)
+  maxReplicas: 10  # Maximum number of pods (never scale above this)
+
+  metrics:  # List of metrics used to determine scaling decisions
+  - type: Resource  # Metric type: Resource (CPU/memory), Pods (custom), Object (external), External, ContainerResource
+    resource:  # Resource-based metrics (requires metrics-server)
+      name: cpu  # Resource name: cpu or memory
+      target:  # Target threshold for this metric
+        type: Utilization  # Target type: Utilization (percentage) or AverageValue (raw value like "100m")
+        averageUtilization: 70  # Scale up when average CPU across all pods > 70%
+        # averageValue: "500m"  # Alternative: scale based on absolute CPU (500 millicores)
+
+  # Optional: Add memory-based scaling
+  # - type: Resource
+  #   resource:
+  #     name: memory
+  #     target:
+  #       type: Utilization
+  #       averageUtilization: 80  # Scale when memory > 80%
+
+  # Optional: Scale based on custom metrics (requires custom metrics API)
+  # - type: Pods
+  #   pods:
+  #     metric:
+  #       name: http_requests_per_second  # Custom metric name
+  #     target:
+  #       type: AverageValue
+  #       averageValue: "1000"  # Scale when requests/sec > 1000
+
+  # Optional: Scale based on external metrics (like queue length)
+  # - type: External
+  #   external:
+  #     metric:
+  #       name: sqs_queue_messages_visible
+  #       selector:
+  #         matchLabels:
+  #           queue_name: my-queue
+  #     target:
+  #       type: Value
+  #       value: "30"  # Scale when queue has > 30 messages
+
+  behavior:  # Optional: fine-tune scaling behavior (omit for default behavior)
+    scaleUp:  # How fast to scale up when needed
+      stabilizationWindowSeconds: 0  # Wait time before scaling up (0 = immediate, prevents flapping)
+      policies:  # List of scale-up policies (can have multiple)
+      - type: Percent  # Policy type: Percent (% increase) or Pods (absolute number)
+        value: 100  # Double the number of pods (100% increase)
+        periodSeconds: 15  # Apply this policy every 15 seconds
+      - type: Pods  # Alternative: absolute pod increase
+        value: 4  # Add 4 pods at a time
+        periodSeconds: 15  # Every 15 seconds
+      selectPolicy: Max  # Which policy to use: Max (most aggressive), Min (most conservative), Disabled
+      # selectPolicy: Min  # Use the policy that adds fewest pods
+
+    scaleDown:  # How fast to scale down when load decreases
+      stabilizationWindowSeconds: 30  # Wait 30s before scaling down (prevents flapping)
+      policies:  # Scale-down policies
+      - type: Percent  # Reduce by percentage
+        value: 50  # Remove 50% of pods at a time
+        periodSeconds: 15  # Every 15 seconds
+      # - type: Pods  # Alternative: absolute reduction
+      #   value: 2  # Remove 2 pods at a time
+      #   periodSeconds: 60  # Every minute
+      # selectPolicy: Min  # Optional: use most conservative policy (default: Min for scale down)
+
+  # Optional: Control how often HPA checks metrics
+  # Default is 15 seconds, controlled by kube-controller-manager flags
+  # Cannot be set per-HPA in v2
+
+# Common configurations for different use cases:
+
+# 1. Conservative scaling (slow and steady):
+#   scaleUp: stabilizationWindowSeconds: 60, Percent: 50%
+#   scaleDown: stabilizationWindowSeconds: 300, Percent: 10%
+
+# 2. Aggressive scaling (fast response):
+#   scaleUp: stabilizationWindowSeconds: 0, Pods: 10
+#   scaleDown: stabilizationWindowSeconds: 60, Percent: 50%
+
+# 3. Memory-based scaling:
+#   Add memory metric with averageUtilization: 80
+
+# 4. Multiple metrics (scales if ANY metric threshold is exceeded):
+#   Add both CPU and memory metrics

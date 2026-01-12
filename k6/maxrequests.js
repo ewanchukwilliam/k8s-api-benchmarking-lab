@@ -6,7 +6,7 @@
   export const options = {
     stages: [
       // { duration: '10s', target: num/5 },   // Ramp to 20 users
-      { duration: '5s', target: num },    
+      { duration: '15s', target: num },    
       { duration: '5m', target: num },   
       { duration: '10s', target: 0 },    
     ],

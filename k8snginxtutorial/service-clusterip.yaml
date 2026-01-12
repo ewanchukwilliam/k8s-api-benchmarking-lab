@@ -1,0 +1,44 @@
+apiVersion: v1  # Kubernetes API version for Services (core/stable)
+kind: Service  # Type of resource - provides stable network endpoint for pods
+metadata:  # Information about this Service
+  name: health-service  # Service name (used as DNS name: health-service.default.svc.cluster.local) → MUST MATCH ingress.yaml backend service name (line 60)
+  # namespace: default  # Optional: Namespace (defaults to 'default')
+  labels:  # Labels for organizing this Service
+    app: health-service  # Identifies this as part of health-service app (not used for matching, just organization)
+  # annotations:  # Optional: Service annotations
+  #   service.beta.kubernetes.io/aws-load-balancer-type: "nlb"  # For LoadBalancer: use NLB
+  #   service.beta.kubernetes.io/aws-load-balancer-internal: "true"  # Internal LB
+  #   prometheus.io/scrape: "true"  # Prometheus annotations
+  #   prometheus.io/port: "8080"
+spec:  # Service specification
+  type: ClusterIP  # Service type: ClusterIP (internal only), LoadBalancer (external), NodePort (node ports)
+  # clusterIP: None  # Optional: "None" for headless service (no load balancing, direct pod IPs)
+  # sessionAffinity: None  # Optional: None (default) or ClientIP (sticky sessions)
+  # sessionAffinityConfig:  # Optional: Configure session affinity
+  #   clientIP:
+  #     timeoutSeconds: 10800  # Session timeout (default: 10800 = 3 hours)
+  # externalTrafficPolicy: Cluster  # Optional: Cluster (default) or Local (preserves source IP)
+  # publishNotReadyAddresses: false  # Optional: Include not-ready pods in endpoints
+  selector:  # Which pods this Service routes traffic to
+    app: health-service  # → MUST MATCH deployment.yaml template.metadata.labels.app (line 28)
+  ports:  # Port mappings
+  - port: 80  # Port the Service listens on (what other services/ingress connect to) → MUST MATCH ingress.yaml backend port (line 62)
+    targetPort: 8080  # Port on the pod/container (where your app actually listens) → MUST MATCH deployment.yaml containerPort (line 92)
+    protocol: TCP  # Network protocol (TCP or UDP)
+    name: http  # Name for this port (useful when multiple ports defined) - not used for matching
+    # nodePort: 30080  # Optional: For NodePort/LoadBalancer type, specify node port (30000-32767)
+    # appProtocol: http  # Optional: Application protocol (http, https, grpc)
+  # Optional: Additional ports
+  # - port: 443
+  #   targetPort: 8443
+  #   protocol: TCP
+  #   name: https
+  # Optional: External IPs (route external traffic to service)
+  # externalIPs:
+  # - 80.11.12.10
+  # Optional: LoadBalancer specific settings
+  # loadBalancerIP: 78.11.24.19  # Request specific IP (cloud provider dependent)
+  # loadBalancerSourceRanges:  # Restrict access to these CIDR blocks
+  # - 10.0.0.0/8
+  # - 192.168.0.0/16
+  # externalName: my.database.example.com  # For ExternalName type only

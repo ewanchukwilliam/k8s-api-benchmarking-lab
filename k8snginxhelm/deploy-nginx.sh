@@ -54,7 +54,7 @@ echo ""
 
 echo "=== Deploying Metrics Server ==="
 echo "Installing metrics-server as EKS managed add-on..."
-eksctl create addon --cluster health-service-cluster-v2 --name metrics-server --force --region us-east-1 || true
+eksctl create addon --cluster health-service-cluster-v3 --name metrics-server --force --region us-east-1 || true
 echo "Waiting for metrics-server to be ready..."
 kubectl wait --for=condition=ready pod -l k8s-app=metrics-server -n kube-system --timeout=120s || {
   echo "⚠️  Metrics-server taking longer than expected, checking status..."
@@ -84,7 +84,7 @@ helm repo add autoscaler https://kubernetes.github.io/autoscaler
 helm repo update
 helm install cluster-autoscaler autoscaler/cluster-autoscaler \
   --namespace kube-system \
-  --set autoDiscovery.clusterName=health-service-cluster-v2 \
+  --set autoDiscovery.clusterName=health-service-cluster-v3 \
   --set awsRegion=us-east-1 \
   --set extraArgs.balance-similar-node-groups=true \
   --set extraArgs.skip-nodes-with-system-pods=false \

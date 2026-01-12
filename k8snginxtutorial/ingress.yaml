@@ -1,0 +1,84 @@
+apiVersion: networking.k8s.io/v1  # Kubernetes API version for Ingress resources
+kind: Ingress  # Type of resource - routes external HTTP/HTTPS traffic to services
+metadata:  # Information about this Ingress
+  name: health-service-ingress  # Name of this Ingress rule
+  # namespace: default  # Optional: Namespace (defaults to 'default')
+  labels:  # Labels for organizing
+    app: health-service  # Identifies this as part of health-service app
+  # annotations:  # Optional: Controller-specific configuration
+  #   # NGINX Ingress annotations:
+  #   nginx.ingress.kubernetes.io/rewrite-target: /  # Rewrite URL path
+  #   nginx.ingress.kubernetes.io/ssl-redirect: "true"  # Force HTTPS
+  #   nginx.ingress.kubernetes.io/rate-limit: "100"  # Rate limiting
+  #   nginx.ingress.kubernetes.io/cors-allow-origin: "*"  # CORS headers
+  #   # AWS ALB Ingress annotations:
+  #   # alb.ingress.kubernetes.io/scheme: internet-facing  # Public or internal
+  #   # alb.ingress.kubernetes.io/target-type: ip  # ip or instance
+  #   # alb.ingress.kubernetes.io/healthcheck-path: /health
+  #   # cert-manager annotation for automatic TLS:
+  #   # cert-manager.io/cluster-issuer: "letsencrypt-prod"
+spec:  # Ingress specification
+  ingressClassName: nginx  # Which Ingress controller handles this (nginx, alb, traefik, etc.)
+  # defaultBackend:  # Optional: Default backend if no rules match
+  #   service:
+  #     name: default-backend
+  #     port:
+  #       number: 80
+  # tls:  # Optional: TLS/HTTPS configuration
+  # - hosts:  # Domains for this certificate
+  #   - api.example.com
+  #   - www.example.com
+  #   secretName: tls-secret  # Secret containing TLS cert and key
+  rules:  # Routing rules for incoming traffic
+  # Example: Host-based routing (different domains)
+  # - host: api.example.com  # Match this domain
+  #   http:
+  #     paths:
+  #     - path: /
+  #       pathType: Prefix
+  #       backend:
+  #         service:
+  #           name: api-service
+  #           port:
+  #             number: 80
+  # - host: app.example.com  # Different domain
+  #   http:
+  #     paths:
+  #     - path: /
+  #       pathType: Prefix
+  #       backend:
+  #         service:
+  #           name: app-service
+  #           port:
+  #             number: 80
+  - http:  # HTTP traffic rules (no host = match all domains)
+      paths:  # URL path-based routing
+      - path: /  # Path to match (/ = all paths, /api = only /api/*)
+        pathType: Prefix  # Match type: Prefix (starts with), Exact (exact match), or ImplementationSpecific
+        backend:  # Where to send matching traffic
+          service:  # Route to a Kubernetes Service
+            name: health-service  # Service name (from service-clusterip.yaml)
+            port:  # Which port on the Service
+              number: 80  # Service port (matches service.spec.ports[].port)
+              # name: http  # Alternative: use port name instead of number
+      # Example: Path-based routing (different paths to different services)
+      # - path: /api
+      #   pathType: Prefix
+      #   backend:
+      #     service:
+      #       name: api-service
+      #       port:
+      #         number: 80
+      # - path: /auth
+      #   pathType: Prefix
+      #   backend:
+      #     service:
+      #       name: auth-service
+      #       port:
+      #         number: 80
+
+# Common patterns:
+# 1. Single service (what you have): All traffic to one service
+# 2. Path-based routing: /api -> api-service, /auth -> auth-service
+# 3. Host-based routing: api.example.com -> api-service, www.example.com -> web-service
+# 4. HTTPS with cert-manager: Add tls section + cert-manager annotation

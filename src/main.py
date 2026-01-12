@@ -143,34 +143,207 @@ async def return_page():
     <head>
         <title>Health Service Monitor</title>
         <style>
+            * {
+                margin: 0;
+                padding: 0;
+                box-sizing: border-box;
+            }
+
             body {
-                font-family: Arial, sans-serif;
-                max-width: 800px;
-                margin: 50px auto;
+                font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                min-height: 100vh;
+                display: flex;
+                align-items: center;
+                justify-content: center;
                 padding: 20px;
-                background-color: #f5f5f5;
             }
+
+            .container {
+                max-width: 900px;
+                width: 100%;
+            }
+
+            .card {
+                background: rgba(255, 255, 255, 0.95);
+                backdrop-filter: blur(10px);
+                border-radius: 20px;
+                padding: 40px;
+                box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+                animation: fadeIn 0.6s ease-out;
+            }
+
+            @keyframes fadeIn {
+                from {
+                    opacity: 0;
+                    transform: translateY(20px);
+                }
+                to {
+                    opacity: 1;
+                    transform: translateY(0);
+                }
+            }
+
             h1 {
-                color: #333;
+                color: #667eea;
+                font-size: 2.5em;
+                margin-bottom: 10px;
+                text-align: center;
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                -webkit-background-clip: text;
+                -webkit-text-fill-color: transparent;
+                background-clip: text;
             }
-            .info {
-                background-color: white;
+
+            .subtitle {
+                text-align: center;
+                color: #666;
+                margin-bottom: 40px;
+                font-size: 1.1em;
+            }
+
+            .endpoints {
+                display: grid;
+                grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+                gap: 20px;
+                margin-top: 30px;
+            }
+
+            .endpoint-card {
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                padding: 25px;
+                border-radius: 15px;
+                text-decoration: none;
+                color: white;
+                transition: all 0.3s ease;
+                box-shadow: 0 5px 15px rgba(102, 126, 234, 0.3);
+            }
+
+            .endpoint-card:hover {
+                transform: translateY(-5px);
+                box-shadow: 0 10px 25px rgba(102, 126, 234, 0.5);
+            }
+
+            .endpoint-title {
+                font-size: 1.3em;
+                font-weight: bold;
+                margin-bottom: 10px;
+                display: flex;
+                align-items: center;
+            }
+
+            .endpoint-icon {
+                margin-right: 10px;
+                font-size: 1.5em;
+            }
+
+            .endpoint-desc {
+                font-size: 0.9em;
+                opacity: 0.9;
+            }
+
+            .stats {
+                display: flex;
+                justify-content: space-around;
+                margin: 30px 0;
                 padding: 20px;
-                border-radius: 8px;
-                box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+                background: linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%);
+                border-radius: 15px;
+            }
+
+            .stat {
+                text-align: center;
+            }
+
+            .stat-value {
+                font-size: 2em;
+                font-weight: bold;
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                -webkit-background-clip: text;
+                -webkit-text-fill-color: transparent;
+                background-clip: text;
+            }
+
+            .stat-label {
+                color: #666;
+                font-size: 0.9em;
+                margin-top: 5px;
+            }
+
+            .pulse {
+                animation: pulse 2s ease-in-out infinite;
+            }
+
+            @keyframes pulse {
+                0%, 100% { opacity: 1; }
+                50% { opacity: 0.6; }
+            }
+
+            .footer {
+                text-align: center;
+                margin-top: 30px;
+                color: #666;
+                font-size: 0.9em;
             }
         </style>
     </head>
     <body>
-        <div class="info">
-            <h1>Hello from Health Service!</h1>
-            <p>This is a simple web page served by the containerized FastAPI service.</p>
-            <p><strong>Available endpoints:</strong></p>
-            <ul>
-                <li><a href="/health">/health</a> - Health check with resource usage</li>
-                <li><a href="/metrics">/metrics</a> - Detailed process metrics</li>
-                <li><a href="/page">/page</a> - This page</li>
-            </ul>
+        <div class="container">
+            <div class="card">
+                <h1>🚀 Health Service Monitor</h1>
+                <p class="subtitle">Real-time containerized FastAPI service monitoring</p>
+
+                <div class="stats">
+                    <div class="stat">
+                        <div class="stat-value pulse">✓</div>
+                        <div class="stat-label">Status: Online</div>
+                    </div>
+                    <div class="stat">
+                        <div class="stat-value">v2.0</div>
+                        <div class="stat-label">API Version</div>
+                    </div>
+                    <div class="stat">
+                        <div class="stat-value">K8s</div>
+                        <div class="stat-label">Platform</div>
+                    </div>
+                </div>
+
+                <div class="endpoints">
+                    <a href="/health" class="endpoint-card">
+                        <div class="endpoint-title">
+                            <span class="endpoint-icon">❤️</span>
+                            Health Check
+                        </div>
+                        <div class="endpoint-desc">
+                            Current resource usage and health status
+                        </div>
+                    </a>
+
+                    <a href="/metrics" class="endpoint-card">
+                        <div class="endpoint-title">
+                            <span class="endpoint-icon">📊</span>
+                            Metrics
+                        </div>
+                        <div class="endpoint-desc">
+                            Detailed process and system metrics
+                        </div>
+                    </a>
+
+                    <a href="/page" class="endpoint-card">
+                        <div class="endpoint-title">
+                            <span class="endpoint-icon">🎨</span>
+                            This Page
+                        </div>
+                        <div class="endpoint-desc">
+                            You are here! Fancy web interface
+                        </div>
+                    </a>
+                </div>
+
+                <div class="footer">
+                    Deployed with ❤️ using Docker, Kubernetes, NGINX & cert-manager
+                </div>
+            </div>
         </div>
     </body>
     </html>
