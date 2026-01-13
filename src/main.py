@@ -216,6 +216,43 @@ async def return_page():
                 font-size: 1.1em;
             }
 
+            .stats {
+                display: flex;
+                justify-content: space-around;
+                margin: 30px 0;
+                padding: 20px;
+                background: linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%);
+                border-radius: 15px;
+            }
+
+            .stat {
+                text-align: center;
+            }
+
+            .stat-value {
+                font-size: 2em;
+                font-weight: bold;
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                -webkit-background-clip: text;
+                -webkit-text-fill-color: transparent;
+                background-clip: text;
+            }
+
+            .stat-label {
+                color: #666;
+                font-size: 0.9em;
+                margin-top: 5px;
+            }
+
+            .pulse {
+                animation: pulse 2s ease-in-out infinite;
+            }
+
+            @keyframes pulse {
+                0%, 100% { opacity: 1; }
+                50% { opacity: 0.6; }
+            }
+
             .endpoints {
                 display: grid;
                 grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
@@ -256,48 +293,122 @@ async def return_page():
                 opacity: 0.9;
             }
 
-            .stats {
-                display: flex;
-                justify-content: space-around;
-                margin: 30px 0;
-                padding: 20px;
-                background: linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%);
-                border-radius: 15px;
-            }
-
-            .stat {
-                text-align: center;
-            }
-
-            .stat-value {
-                font-size: 2em;
-                font-weight: bold;
-                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-                -webkit-background-clip: text;
-                -webkit-text-fill-color: transparent;
-                background-clip: text;
-            }
-
-            .stat-label {
-                color: #666;
-                font-size: 0.9em;
-                margin-top: 5px;
-            }
-
-            .pulse {
-                animation: pulse 2s ease-in-out infinite;
-            }
-
-            @keyframes pulse {
-                0%, 100% { opacity: 1; }
-                50% { opacity: 0.6; }
-            }
-
             .footer {
                 text-align: center;
                 margin-top: 30px;
                 color: #666;
                 font-size: 0.9em;
+            }
+
+            /* extra stuff for Redis view */
+
+            .hidden {
+                display: none;
+            }
+
+            .redis-header {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                margin-top: 30px;
+                margin-bottom: 10px;
+                gap: 12px;
+            }
+
+            .redis-header h2 {
+                font-size: 1.4em;
+                color: #444;
+            }
+
+            .redis-status {
+                font-size: 0.85em;
+                color: #666;
+                margin-right: 8px;
+            }
+
+            .redis-header-right {
+                display: flex;
+                align-items: center;
+                gap: 8px;
+            }
+
+            .redis-grid {
+                display: grid;
+                grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+                gap: 16px;
+                margin-top: 10px;
+            }
+
+            .redis-card {
+                background: linear-gradient(135deg, #f5f7ff 0%, #eef2ff 100%);
+                border-radius: 12px;
+                padding: 16px;
+                box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+                border: 1px solid rgba(102, 126, 234, 0.2);
+            }
+
+            .redis-pod {
+                font-weight: 600;
+                margin-bottom: 4px;
+                color: #333;
+            }
+
+            .redis-namespace {
+                font-size: 0.85em;
+                color: #777;
+                margin-bottom: 8px;
+            }
+
+            .redis-cpu {
+                font-size: 1.2em;
+                font-weight: 700;
+                color: #667eea;
+                margin-bottom: 4px;
+            }
+
+            .redis-ts {
+                font-size: 0.8em;
+                color: #555;
+            }
+
+            .endpoint-card.button-like {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                cursor: pointer;
+                border: none;
+                width: 100%;
+                text-align: left;
+            }
+
+            .endpoint-card.button-like:disabled {
+                opacity: 0.6;
+                cursor: wait;
+            }
+
+            .btn-refresh {
+                padding: 8px 14px;
+                border-radius: 999px;
+                border: none;
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                color: #fff;
+                font-size: 0.8em;
+                cursor: pointer;
+                box-shadow: 0 4px 10px rgba(102,126,234,0.4);
+                transition: transform 0.15s ease, box-shadow 0.15s ease, opacity 0.15s ease;
+                white-space: nowrap;
+            }
+
+            .btn-refresh:hover {
+                transform: translateY(-1px);
+                box-shadow: 0 6px 14px rgba(102,126,234,0.6);
+            }
+
+            .btn-refresh:disabled {
+                opacity: 0.6;
+                cursor: wait;
+                transform: none;
+                box-shadow: 0 3px 8px rgba(0,0,0,0.1);
             }
         </style>
     </head>
@@ -307,51 +418,64 @@ async def return_page():
                 <h1>🚀 Health Service Monitor</h1>
                 <p class="subtitle">Real-time containerized FastAPI service monitoring</p>
 
-                <div class="stats">
-                    <div class="stat">
-                        <div class="stat-value pulse">✓</div>
-                        <div class="stat-label">Status: Online</div>
+                <div id="default-section">
+                    <div class="stats">
+                        <div class="stat">
+                            <div class="stat-value pulse">✓</div>
+                            <div class="stat-label">Status: Online</div>
+                        </div>
+                        <div class="stat">
+                            <div class="stat-value">v2.0</div>
+                            <div class="stat-label">API Version</div>
+                        </div>
+                        <div class="stat">
+                            <div class="stat-value">K8s</div>
+                            <div class="stat-label">Platform</div>
+                        </div>
                     </div>
-                    <div class="stat">
-                        <div class="stat-value">v2.0</div>
-                        <div class="stat-label">API Version</div>
-                    </div>
-                    <div class="stat">
-                        <div class="stat-value">K8s</div>
-                        <div class="stat-label">Platform</div>
+
+                    <div class="endpoints">
+                        <a href="/health" class="endpoint-card">
+                            <div class="endpoint-title">
+                                <span class="endpoint-icon">❤️</span>
+                                Health Check
+                            </div>
+                            <div class="endpoint-desc">
+                                Current resource usage and health status
+                            </div>
+                        </a>
+
+                        <a href="/metrics" class="endpoint-card">
+                            <div class="endpoint-title">
+                                <span class="endpoint-icon">📊</span>
+                                Metrics
+                            </div>
+                            <div class="endpoint-desc">
+                                Detailed process and system metrics
+                            </div>
+                        </a>
+
+                        <button id="show-redis-btn" type="button" class="endpoint-card button-like">
+                            <div class="endpoint-title">
+                                <span class="endpoint-icon">🧠</span>
+                                Redis CPU View
+                            </div>
+                            <div class="endpoint-desc">
+                                Visualize per-pod CPU from Redis
+                            </div>
+                        </button>
                     </div>
                 </div>
 
-                <div class="endpoints">
-                    <a href="/health" class="endpoint-card">
-                        <div class="endpoint-title">
-                            <span class="endpoint-icon">❤️</span>
-                            Health Check
+                <div id="redis-section" class="hidden">
+                    <div class="redis-header">
+                        <h2>Pod CPU Usage (from Redis)</h2>
+                        <div class="redis-header-right">
+                            <span id="redis-status" class="redis-status"></span>
+                            <button id="refresh-redis-btn" type="button" class="btn-refresh">Refresh</button>
                         </div>
-                        <div class="endpoint-desc">
-                            Current resource usage and health status
-                        </div>
-                    </a>
-
-                    <a href="/metrics" class="endpoint-card">
-                        <div class="endpoint-title">
-                            <span class="endpoint-icon">📊</span>
-                            Metrics
-                        </div>
-                        <div class="endpoint-desc">
-                            Detailed process and system metrics
-                        </div>
-                    </a>
-
-                    <a href="/page" class="endpoint-card">
-                        <div class="endpoint-title">
-                            <span class="endpoint-icon">🎨</span>
-                            This Page
-                        </div>
-                        <div class="endpoint-desc">
-                            You are here! Fancy web interface
-                        </div>
-                    </a>
+                    </div>
+                    <div id="redis-panel" class="redis-grid"></div>
                 </div>
 
                 <div class="footer">
@@ -359,10 +483,80 @@ async def return_page():
                 </div>
             </div>
         </div>
+
+        <script>
+            document.addEventListener("DOMContentLoaded", () => {
+                const btn = document.getElementById("show-redis-btn");
+                const refreshBtn = document.getElementById("refresh-redis-btn");
+                const defaultSection = document.getElementById("default-section");
+                const redisSection = document.getElementById("redis-section");
+                const statusEl = document.getElementById("redis-status");
+                const panel = document.getElementById("redis-panel");
+
+                async function loadRedisData() {
+                    statusEl.textContent = "Loading Redis CPU data...";
+                    panel.innerHTML = "";
+
+                    btn.disabled = true;
+                    refreshBtn.disabled = true;
+
+                    try {
+                        const res = await fetch("/get-all-redis-keys");
+                        const text = await res.text();
+                        const data = JSON.parse(text);
+
+                        const entries = Object.values(data);
+
+                        if (!entries.length) {
+                            statusEl.textContent = "No CPU records found in Redis yet.";
+                            return;
+                        }
+
+                        // Swap views (idempotent)
+                        defaultSection.classList.add("hidden");
+                        redisSection.classList.remove("hidden");
+                        statusEl.textContent = "Last updated: " + new Date().toLocaleTimeString();
+
+                        entries.forEach(item => {
+                            const card = document.createElement("div");
+                            card.className = "redis-card";
+
+                            const ts = new Date(item.ts * 1000); // ts is UNIX timestamp
+                            const tsLabel = ts.toLocaleTimeString();
+
+                            card.innerHTML = `
+                                <div class="redis-pod">${item.pod}</div>
+                                <div class="redis-namespace">${item.namespace}</div>
+                                <div class="redis-cpu">${item.cpu_percent.toFixed(1)}% CPU</div>
+                                <div class="redis-ts">Updated at ${tsLabel}</div>
+                            `;
+
+                            panel.appendChild(card);
+                        });
+                    } catch (err) {
+                        console.error(err);
+                        statusEl.textContent = "Error loading Redis data: " + err;
+                    } finally {
+                        btn.disabled = false;
+                        refreshBtn.disabled = false;
+                    }
+                }
+
+                btn.addEventListener("click", () => {
+                    loadRedisData();
+                });
+
+                refreshBtn.addEventListener("click", () => {
+                    loadRedisData();
+                });
+            });
+        </script>
     </body>
     </html>
     """
     return HTMLResponse(content=html_content)
+
+
 
 @app.get("/check-redis", response_class=HTMLResponse)
 async def return_redis_port_connection_status():

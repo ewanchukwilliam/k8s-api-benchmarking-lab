@@ -11,7 +11,7 @@
   };
 
   export default function () {
-    const res = http.get('http://localhost:30090/health');
+    const res = http.get('http://localhost/health');
 
     check(res, {
       'status is 200': (r) => r.status === 200,
