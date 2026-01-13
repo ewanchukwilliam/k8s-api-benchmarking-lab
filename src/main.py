@@ -157,6 +157,18 @@ async def return_page():
     <head>
         <title>Health Service Monitor</title>
         <style>
+            :root {
+                --bg-main: #020617;
+                --bg-card: #020617;
+                --bg-elevated: #020617;
+                --border-subtle: #1f2933;
+                --text-main: #e5e7eb;
+                --text-muted: #9ca3af;
+                --accent: #38bdf8;
+                --accent-soft: #0f172a;
+                --danger: #f97373;
+            }
+
             * {
                 margin: 0;
                 padding: 0;
@@ -164,33 +176,37 @@ async def return_page():
             }
 
             body {
-                font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+                             sans-serif;
+                background: radial-gradient(circle at top, #020617 0, #020617 45%, #000 100%);
+                color: var(--text-main);
                 min-height: 100vh;
                 display: flex;
                 align-items: center;
                 justify-content: center;
-                padding: 20px;
+                padding: 24px;
             }
 
             .container {
-                max-width: 900px;
+                max-width: 960px;
                 width: 100%;
             }
 
             .card {
-                background: rgba(255, 255, 255, 0.95);
-                backdrop-filter: blur(10px);
-                border-radius: 20px;
-                padding: 40px;
-                box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
-                animation: fadeIn 0.6s ease-out;
+                background: var(--bg-card);
+                border-radius: 16px;
+                padding: 28px 28px 22px 28px;
+                box-shadow:
+                    0 18px 45px rgba(0, 0, 0, 0.9),
+                    0 0 0 1px rgba(148, 163, 184, 0.08);
+                border: 1px solid rgba(15, 23, 42, 0.9);
+                animation: fadeIn 0.35s ease-out;
             }
 
             @keyframes fadeIn {
                 from {
                     opacity: 0;
-                    transform: translateY(20px);
+                    transform: translateY(4px);
                 }
                 to {
                     opacity: 1;
@@ -199,49 +215,72 @@ async def return_page():
             }
 
             h1 {
-                color: #667eea;
-                font-size: 2.5em;
-                margin-bottom: 10px;
-                text-align: center;
-                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-                -webkit-background-clip: text;
-                -webkit-text-fill-color: transparent;
-                background-clip: text;
+                font-size: 1.35rem;
+                margin-bottom: 6px;
+                letter-spacing: 0.02em;
+                display: flex;
+                align-items: center;
+                gap: 6px;
+            }
+
+            h1 span {
+                font-size: 1rem;
+                font-weight: 500;
+                color: var(--accent);
             }
 
             .subtitle {
-                text-align: center;
-                color: #666;
-                margin-bottom: 40px;
-                font-size: 1.1em;
+                font-size: 0.85rem;
+                color: var(--text-muted);
+                margin-bottom: 20px;
+            }
+
+            .top-row {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                gap: 12px;
+                margin-bottom: 16px;
+            }
+
+            .tag {
+                font-size: 0.7rem;
+                text-transform: uppercase;
+                letter-spacing: 0.08em;
+                color: var(--text-muted);
+                padding: 4px 9px;
+                border-radius: 999px;
+                border: 1px solid rgba(148, 163, 184, 0.4);
+                background: rgba(15, 23, 42, 0.7);
             }
 
             .stats {
                 display: flex;
-                justify-content: space-around;
-                margin: 30px 0;
-                padding: 20px;
-                background: linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%);
-                border-radius: 15px;
+                justify-content: flex-start;
+                gap: 18px;
+                margin-bottom: 20px;
             }
 
             .stat {
-                text-align: center;
-            }
-
-            .stat-value {
-                font-size: 2em;
-                font-weight: bold;
-                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-                -webkit-background-clip: text;
-                -webkit-text-fill-color: transparent;
-                background-clip: text;
+                background: var(--bg-elevated);
+                border-radius: 8px;
+                padding: 10px 12px;
+                border: 1px solid rgba(31, 41, 55, 0.9);
+                min-width: 96px;
             }
 
             .stat-label {
-                color: #666;
-                font-size: 0.9em;
-                margin-top: 5px;
+                font-size: 0.7rem;
+                color: var(--text-muted);
+                margin-bottom: 4px;
+                text-transform: uppercase;
+                letter-spacing: 0.06em;
+            }
+
+            .stat-value {
+                font-size: 0.95rem;
+                font-weight: 600;
+                color: var(--accent);
             }
 
             .pulse {
@@ -255,255 +294,464 @@ async def return_page():
 
             .endpoints {
                 display: grid;
-                grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-                gap: 20px;
-                margin-top: 30px;
+                grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+                gap: 12px;
+                margin-top: 14px;
             }
 
             .endpoint-card {
-                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-                padding: 25px;
-                border-radius: 15px;
+                background: #020617;
+                border-radius: 10px;
+                padding: 14px 14px 12px 14px;
                 text-decoration: none;
-                color: white;
-                transition: all 0.3s ease;
-                box-shadow: 0 5px 15px rgba(102, 126, 234, 0.3);
+                color: var(--text-main);
+                border: 1px solid rgba(30, 64, 175, 0.55);
+                display: flex;
+                flex-direction: column;
+                gap: 4px;
+                transition:
+                    transform 0.12s ease,
+                    border-color 0.12s ease,
+                    box-shadow 0.12s ease,
+                    background-color 0.12s ease;
             }
 
             .endpoint-card:hover {
-                transform: translateY(-5px);
-                box-shadow: 0 10px 25px rgba(102, 126, 234, 0.5);
+                transform: translateY(-1px);
+                border-color: rgba(56, 189, 248, 0.85);
+                box-shadow: 0 10px 20px rgba(15, 23, 42, 0.9);
+                background-color: #020617;
             }
 
             .endpoint-title {
-                font-size: 1.3em;
-                font-weight: bold;
-                margin-bottom: 10px;
+                font-size: 0.9rem;
+                font-weight: 500;
                 display: flex;
                 align-items: center;
+                gap: 6px;
             }
 
             .endpoint-icon {
-                margin-right: 10px;
-                font-size: 1.5em;
-            }
-
-            .endpoint-desc {
-                font-size: 0.9em;
+                font-size: 0.9rem;
                 opacity: 0.9;
             }
 
-            .footer {
-                text-align: center;
-                margin-top: 30px;
-                color: #666;
-                font-size: 0.9em;
+            .endpoint-desc {
+                font-size: 0.8rem;
+                color: var(--text-muted);
             }
 
-            /* extra stuff for Redis view */
+            .endpoint-card.button-like {
+                cursor: pointer;
+                border: 1px solid rgba(34, 197, 235, 0.9);
+                background: radial-gradient(circle at top left,
+                                            rgba(34, 211, 238, 0.12),
+                                            rgba(15, 23, 42, 1));
+            }
+
+            .endpoint-card.button-like:disabled {
+                opacity: 0.7;
+                cursor: wait;
+                transform: none;
+                box-shadow: none;
+            }
+
+            .footer {
+                text-align: right;
+                margin-top: 16px;
+                color: var(--text-muted);
+                font-size: 0.7rem;
+                border-top: 1px solid rgba(15, 23, 42, 1);
+                padding-top: 8px;
+            }
+
+            .footer span {
+                color: var(--accent);
+            }
 
             .hidden {
                 display: none;
             }
 
-            .redis-header {
+            .section-header {
                 display: flex;
                 justify-content: space-between;
                 align-items: center;
-                margin-top: 30px;
-                margin-bottom: 10px;
-                gap: 12px;
+                margin-top: 10px;
+                margin-bottom: 8px;
+                gap: 10px;
             }
 
-            .redis-header h2 {
-                font-size: 1.4em;
-                color: #444;
+            .section-header h2 {
+                font-size: 0.95rem;
+                font-weight: 500;
             }
 
-            .redis-status {
-                font-size: 0.85em;
-                color: #666;
-                margin-right: 8px;
+            .section-status {
+                font-size: 0.75rem;
+                color: var(--text-muted);
             }
 
-            .redis-header-right {
+            .section-header-right {
                 display: flex;
                 align-items: center;
                 gap: 8px;
             }
 
-            .redis-grid {
+            .grid-panel {
                 display: grid;
-                grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-                gap: 16px;
-                margin-top: 10px;
+                grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+                gap: 10px;
+                margin-top: 8px;
             }
 
-            .redis-card {
-                background: linear-gradient(135deg, #f5f7ff 0%, #eef2ff 100%);
-                border-radius: 12px;
-                padding: 16px;
-                box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
-                border: 1px solid rgba(102, 126, 234, 0.2);
+            .data-card {
+                background: #020617;
+                border-radius: 10px;
+                padding: 12px 12px 10px 12px;
+                border: 1px solid rgba(31, 41, 55, 0.9);
+                box-shadow: 0 8px 18px rgba(15, 23, 42, 0.9);
+                font-size: 0.8rem;
             }
 
-            .redis-pod {
+            .data-title {
+                font-size: 0.8rem;
+                color: var(--text-muted);
+                margin-bottom: 3px;
+                text-transform: uppercase;
+                letter-spacing: 0.06em;
+            }
+
+            .data-value {
+                font-size: 0.95rem;
                 font-weight: 600;
-                margin-bottom: 4px;
-                color: #333;
             }
 
-            .redis-namespace {
-                font-size: 0.85em;
-                color: #777;
-                margin-bottom: 8px;
+            .data-value.accent {
+                color: var(--accent);
             }
 
-            .redis-cpu {
-                font-size: 1.2em;
-                font-weight: 700;
-                color: #667eea;
-                margin-bottom: 4px;
+            .data-value.bad {
+                color: var(--danger);
             }
 
-            .redis-ts {
-                font-size: 0.8em;
-                color: #555;
-            }
-
-            .endpoint-card.button-like {
-                display: flex;
-                justify-content: space-between;
-                align-items: center;
-                cursor: pointer;
-                border: none;
-                width: 100%;
-                text-align: left;
-            }
-
-            .endpoint-card.button-like:disabled {
-                opacity: 0.6;
-                cursor: wait;
+            .small-text {
+                font-size: 0.72rem;
+                color: var(--text-muted);
             }
 
             .btn-refresh {
-                padding: 8px 14px;
+                padding: 6px 11px;
                 border-radius: 999px;
-                border: none;
-                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-                color: #fff;
-                font-size: 0.8em;
+                border: 1px solid rgba(148, 163, 184, 0.5);
+                background: rgba(15, 23, 42, 0.9);
+                color: var(--text-main);
+                font-size: 0.75rem;
                 cursor: pointer;
-                box-shadow: 0 4px 10px rgba(102,126,234,0.4);
-                transition: transform 0.15s ease, box-shadow 0.15s ease, opacity 0.15s ease;
-                white-space: nowrap;
+                transition:
+                    background-color 0.12s ease,
+                    border-color 0.12s ease,
+                    transform 0.12s ease;
             }
 
             .btn-refresh:hover {
+                background: rgba(30, 64, 175, 0.95);
+                border-color: rgba(56, 189, 248, 0.9);
                 transform: translateY(-1px);
-                box-shadow: 0 6px 14px rgba(102,126,234,0.6);
             }
 
             .btn-refresh:disabled {
                 opacity: 0.6;
                 cursor: wait;
                 transform: none;
-                box-shadow: 0 3px 8px rgba(0,0,0,0.1);
             }
         </style>
     </head>
     <body>
         <div class="container">
             <div class="card">
-                <h1>🚀 Health Service Monitor</h1>
-                <p class="subtitle">Real-time containerized FastAPI service monitoring</p>
+                <div class="top-row">
+                    <div>
+                        <h1>Health Service Monitor <span>· k8s pod view</span></h1>
+                        <p class="subtitle">Realtime process & per-pod CPU from Redis, exposed via FastAPI.</p>
+                    </div>
+                    <div class="tag">Internal · Diagnostics</div>
+                </div>
 
+                <!-- Overview / static -->
                 <div id="default-section">
                     <div class="stats">
                         <div class="stat">
-                            <div class="stat-value pulse">✓</div>
-                            <div class="stat-label">Status: Online</div>
+                            <div class="stat-label">Status</div>
+                            <div class="stat-value pulse">Online</div>
                         </div>
                         <div class="stat">
-                            <div class="stat-value">v2.0</div>
                             <div class="stat-label">API Version</div>
+                            <div class="stat-value">v2.0</div>
                         </div>
                         <div class="stat">
-                            <div class="stat-value">K8s</div>
                             <div class="stat-label">Platform</div>
+                            <div class="stat-value">Kubernetes</div>
                         </div>
                     </div>
 
                     <div class="endpoints">
-                        <a href="/health" class="endpoint-card">
+                        <button id="show-health-btn" type="button" class="endpoint-card button-like">
                             <div class="endpoint-title">
-                                <span class="endpoint-icon">❤️</span>
-                                Health Check
+                                <span class="endpoint-icon">●</span>
+                                Health View
                             </div>
                             <div class="endpoint-desc">
-                                Current resource usage and health status
+                                Live status, CPU and memory from /health.
                             </div>
-                        </a>
+                        </button>
 
-                        <a href="/metrics" class="endpoint-card">
+                        <button id="show-metrics-btn" type="button" class="endpoint-card button-like">
                             <div class="endpoint-title">
-                                <span class="endpoint-icon">📊</span>
-                                Metrics
+                                <span class="endpoint-icon">◆</span>
+                                Metrics View
                             </div>
                             <div class="endpoint-desc">
-                                Detailed process and system metrics
+                                Detailed process metrics from /metrics.
                             </div>
-                        </a>
+                        </button>
 
                         <button id="show-redis-btn" type="button" class="endpoint-card button-like">
                             <div class="endpoint-title">
-                                <span class="endpoint-icon">🧠</span>
+                                <span class="endpoint-icon">▮▮</span>
                                 Redis CPU View
                             </div>
                             <div class="endpoint-desc">
-                                Visualize per-pod CPU from Redis
+                                Aggregate CPU usage per pod from Redis.
                             </div>
                         </button>
                     </div>
                 </div>
 
+                <!-- Health section -->
+                <div id="health-section" class="hidden">
+                    <div class="section-header">
+                        <h2>Process Health</h2>
+                        <div class="section-header-right">
+                            <span id="health-status" class="section-status"></span>
+                            <button id="health-refresh-btn" type="button" class="btn-refresh">Refresh</button>
+                        </div>
+                    </div>
+                    <div id="health-panel" class="grid-panel"></div>
+                </div>
+
+                <!-- Metrics section -->
+                <div id="metrics-section" class="hidden">
+                    <div class="section-header">
+                        <h2>Process Metrics</h2>
+                        <div class="section-header-right">
+                            <span id="metrics-status" class="section-status"></span>
+                            <button id="metrics-refresh-btn" type="button" class="btn-refresh">Refresh</button>
+                        </div>
+                    </div>
+                    <div id="metrics-panel" class="grid-panel"></div>
+                </div>
+
+                <!-- Redis section -->
                 <div id="redis-section" class="hidden">
-                    <div class="redis-header">
-                        <h2>Pod CPU Usage (from Redis)</h2>
-                        <div class="redis-header-right">
-                            <span id="redis-status" class="redis-status"></span>
+                    <div class="section-header">
+                        <h2>Pod CPU Usage (Redis-backed)</h2>
+                        <div class="section-header-right">
+                            <span id="redis-status" class="section-status"></span>
                             <button id="refresh-redis-btn" type="button" class="btn-refresh">Refresh</button>
                         </div>
                     </div>
-                    <div id="redis-panel" class="redis-grid"></div>
+                    <div id="redis-panel" class="grid-panel"></div>
                 </div>
 
                 <div class="footer">
-                    Deployed with ❤️ using Docker, Kubernetes, NGINX & cert-manager
+                    <span>health-service</span> · FastAPI · Redis · Kubernetes
                 </div>
             </div>
         </div>
 
         <script>
             document.addEventListener("DOMContentLoaded", () => {
-                const btn = document.getElementById("show-redis-btn");
-                const refreshBtn = document.getElementById("refresh-redis-btn");
                 const defaultSection = document.getElementById("default-section");
+                const healthSection = document.getElementById("health-section");
+                const metricsSection = document.getElementById("metrics-section");
                 const redisSection = document.getElementById("redis-section");
-                const statusEl = document.getElementById("redis-status");
-                const panel = document.getElementById("redis-panel");
 
-                let autoRefreshId = null;
-                let loading = false;
+                const showHealthBtn = document.getElementById("show-health-btn");
+                const showMetricsBtn = document.getElementById("show-metrics-btn");
+                const showRedisBtn = document.getElementById("show-redis-btn");
+
+                const healthRefreshBtn = document.getElementById("health-refresh-btn");
+                const metricsRefreshBtn = document.getElementById("metrics-refresh-btn");
+                const redisRefreshBtn = document.getElementById("refresh-redis-btn");
+
+                const healthStatus = document.getElementById("health-status");
+                const metricsStatus = document.getElementById("metrics-status");
+                const redisStatus = document.getElementById("redis-status");
+
+                const healthPanel = document.getElementById("health-panel");
+                const metricsPanel = document.getElementById("metrics-panel");
+                const redisPanel = document.getElementById("redis-panel");
+
+                let autoRedisRefreshId = null;
+                let loadingHealth = false;
+                let loadingMetrics = false;
+                let loadingRedis = false;
+
+                function setActiveSection(section) {
+                    defaultSection.classList.add("hidden");
+                    healthSection.classList.add("hidden");
+                    metricsSection.classList.add("hidden");
+                    redisSection.classList.add("hidden");
+
+                    if (section === "default") defaultSection.classList.remove("hidden");
+                    if (section === "health") healthSection.classList.remove("hidden");
+                    if (section === "metrics") metricsSection.classList.remove("hidden");
+                    if (section === "redis") redisSection.classList.remove("hidden");
+                }
+
+                async function loadHealth() {
+                    if (loadingHealth) return;
+                    loadingHealth = true;
+
+                    healthStatus.textContent = "Loading /health...";
+                    healthRefreshBtn.disabled = true;
+                    showHealthBtn.disabled = true;
+
+                    try {
+                        const res = await fetch("/health");
+                        const text = await res.text();
+                        const data = JSON.parse(text || "{}");
+
+                        setActiveSection("health");
+                        healthStatus.textContent = "Last updated: " + new Date().toLocaleTimeString();
+
+                        const frag = document.createDocumentFragment();
+
+                        const statusCard = document.createElement("div");
+                        statusCard.className = "data-card";
+                        statusCard.innerHTML = `
+                            <div class="data-title">Status</div>
+                            <div class="data-value ${data.status === "ok" ? "accent" : "bad"}">
+                                ${data.status || "unknown"}
+                            </div>
+                            <div class="small-text">${data.timestamp || ""}</div>
+                        `;
+                        frag.appendChild(statusCard);
+
+                        const cpuCard = document.createElement("div");
+                        cpuCard.className = "data-card";
+                        cpuCard.innerHTML = `
+                            <div class="data-title">CPU</div>
+                            <div class="data-value accent">${(data.cpu_percent ?? 0).toFixed(1)}%</div>
+                        `;
+                        frag.appendChild(cpuCard);
+
+                        const memCard = document.createElement("div");
+                        memCard.className = "data-card";
+                        memCard.innerHTML = `
+                            <div class="data-title">Memory</div>
+                            <div class="data-value accent">${(data.memory_mb ?? 0).toFixed(2)} MB</div>
+                            <div class="small-text">${(data.memory_percent ?? 0).toFixed(2)}% of process RSS</div>
+                        `;
+                        frag.appendChild(memCard);
+
+                        healthPanel.replaceChildren(frag);
+                    } catch (err) {
+                        console.error(err);
+                        healthStatus.textContent = "Error loading /health: " + err;
+                    } finally {
+                        loadingHealth = false;
+                        healthRefreshBtn.disabled = false;
+                        showHealthBtn.disabled = false;
+                    }
+                }
+
+                async function loadMetrics() {
+                    if (loadingMetrics) return;
+                    loadingMetrics = true;
+
+                    metricsStatus.textContent = "Loading /metrics...";
+                    metricsRefreshBtn.disabled = true;
+                    showMetricsBtn.disabled = true;
+
+                    try {
+                        const res = await fetch("/metrics");
+                        const text = await res.text();
+                        const data = JSON.parse(text || "{}");
+
+                        setActiveSection("metrics");
+                        metricsStatus.textContent = "Last updated: " + new Date().toLocaleTimeString();
+
+                        const frag = document.createDocumentFragment();
+
+                        const cpuCard = document.createElement("div");
+                        cpuCard.className = "data-card";
+                        cpuCard.innerHTML = `
+                            <div class="data-title">CPU</div>
+                            <div class="data-value accent">${(data.cpu_percent ?? 0).toFixed(1)}%</div>
+                        `;
+                        frag.appendChild(cpuCard);
+
+                        const memCard = document.createElement("div");
+                        memCard.className = "data-card";
+                        memCard.innerHTML = `
+                            <div class="data-title">Memory</div>
+                            <div class="data-value accent">${(data.memory_mb ?? 0).toFixed(2)} MB</div>
+                            <div class="small-text">${(data.memory_percent ?? 0).toFixed(2)}% of process RSS</div>
+                        `;
+                        frag.appendChild(memCard);
+
+                        const threadsCard = document.createElement("div");
+                        threadsCard.className = "data-card";
+                        threadsCard.innerHTML = `
+                            <div class="data-title">Threads</div>
+                            <div class="data-value">${data.num_threads ?? 0}</div>
+                        `;
+                        frag.appendChild(threadsCard);
+
+                        const filesCard = document.createElement("div");
+                        filesCard.className = "data-card";
+                        filesCard.innerHTML = `
+                            <div class="data-title">Open Files</div>
+                            <div class="data-value">${data.open_files ?? 0}</div>
+                        `;
+                        frag.appendChild(filesCard);
+
+                        const connCard = document.createElement("div");
+                        connCard.className = "data-card";
+                        connCard.innerHTML = `
+                            <div class="data-title">Connections</div>
+                            <div class="data-value">${data.connections ?? 0}</div>
+                        `;
+                        frag.appendChild(connCard);
+
+                        const tsCard = document.createElement("div");
+                        tsCard.className = "data-card";
+                        tsCard.innerHTML = `
+                            <div class="data-title">Timestamp</div>
+                            <div class="data-value">${data.timestamp || ""}</div>
+                        `;
+                        frag.appendChild(tsCard);
+
+                        metricsPanel.replaceChildren(frag);
+                    } catch (err) {
+                        console.error(err);
+                        metricsStatus.textContent = "Error loading /metrics: " + err;
+                    } finally {
+                        loadingMetrics = false;
+                        metricsRefreshBtn.disabled = false;
+                        showMetricsBtn.disabled = false;
+                    }
+                }
 
                 async function loadRedisData() {
-                    if (loading) return; // don't double-fire if previous call still in flight
-                    loading = true;
+                    if (loadingRedis) return;
+                    loadingRedis = true;
 
-                    statusEl.textContent = "Loading Redis CPU data...";
-
-                    btn.disabled = true;
-                    refreshBtn.disabled = true;
+                    redisStatus.textContent = "Loading Redis CPU data...";
+                    redisRefreshBtn.disabled = true;
+                    showRedisBtn.disabled = true;
 
                     try {
                         const res = await fetch("/get-all-redis-keys");
@@ -513,59 +761,70 @@ async def return_page():
                         const entries = Object.values(data);
 
                         if (!entries.length) {
-                            // keep old cards on screen, just update status text
-                            statusEl.textContent = "No CPU records found in Redis yet.";
+                            redisStatus.textContent = "No CPU records found in Redis yet.";
                             return;
                         }
 
-                        // First time: swap views
-                        defaultSection.classList.add("hidden");
-                        redisSection.classList.remove("hidden");
-                        statusEl.textContent = "Last updated: " + new Date().toLocaleTimeString();
+                        setActiveSection("redis");
+                        redisStatus.textContent = "Last updated: " + new Date().toLocaleTimeString();
 
-                        // Build new DOM off-screen
                         const frag = document.createDocumentFragment();
 
                         entries.forEach(item => {
                             const card = document.createElement("div");
-                            card.className = "redis-card";
+                            card.className = "data-card";
 
-                            const ts = new Date(item.ts * 1000); // ts is UNIX timestamp
+                            const ts = new Date(item.ts * 1000);
                             const tsLabel = ts.toLocaleTimeString();
 
                             card.innerHTML = `
-                                <div class="redis-pod">${item.pod}</div>
-                                <div class="redis-namespace">${item.namespace}</div>
-                                <div class="redis-cpu">${item.cpu_percent.toFixed(1)}% CPU</div>
-                                <div class="redis-ts">Updated at ${tsLabel}</div>
+                                <div class="data-title">Pod</div>
+                                <div class="data-value accent">${item.pod}</div>
+                                <div class="small-text">${item.namespace}</div>
+                                <div style="margin-top:6px" class="data-title">CPU</div>
+                                <div class="data-value accent">${item.cpu_percent.toFixed(1)}% CPU</div>
+                                <div class="small-text">Updated at ${tsLabel}</div>
                             `;
 
                             frag.appendChild(card);
                         });
 
-                        // Single atomic update – no blank state
-                        panel.replaceChildren(frag);
+                        redisPanel.replaceChildren(frag);
                     } catch (err) {
                         console.error(err);
-                        // don't clear old content, just show error
-                        statusEl.textContent = "Error loading Redis data: " + err;
+                        redisStatus.textContent = "Error loading Redis data: " + err;
                     } finally {
-                        loading = false;
-                        btn.disabled = false;
-                        refreshBtn.disabled = false;
+                        loadingRedis = false;
+                        redisRefreshBtn.disabled = false;
+                        showRedisBtn.disabled = false;
                     }
                 }
 
-                btn.addEventListener("click", () => {
+                showHealthBtn.addEventListener("click", () => {
+                    loadHealth();
+                });
+
+                healthRefreshBtn.addEventListener("click", () => {
+                    loadHealth();
+                });
+
+                showMetricsBtn.addEventListener("click", () => {
+                    loadMetrics();
+                });
+
+                metricsRefreshBtn.addEventListener("click", () => {
+                    loadMetrics();
+                });
+
+                showRedisBtn.addEventListener("click", () => {
                     loadRedisData();
 
-                    // Start auto-refresh every 1s after first click
-                    if (autoRefreshId === null) {
-                        autoRefreshId = setInterval(loadRedisData, 1000);
+                    if (autoRedisRefreshId === null) {
+                        autoRedisRefreshId = setInterval(loadRedisData, 1000);
                     }
                 });
 
-                refreshBtn.addEventListener("click", () => {
+                redisRefreshBtn.addEventListener("click", () => {
                     loadRedisData();
                 });
             });
@@ -574,6 +833,8 @@ async def return_page():
     </html>
     """
     return HTMLResponse(content=html_content)
+
+
 
 @app.get("/check-redis", response_class=HTMLResponse)
 async def return_redis_port_connection_status():
