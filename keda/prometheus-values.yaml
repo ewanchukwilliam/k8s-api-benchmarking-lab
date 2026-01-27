@@ -1,0 +1,223 @@
+# Prometheus Stack Helm Chart Values for EKS
+# Install with: helm install prometheus prometheus-community/kube-prometheus-stack -n monitoring --create-namespace -f prometheus-values.yaml
+
+# Global settings
+fullnameOverride: prometheus
+
+# Prometheus Operator
+prometheusOperator:
+  enabled: true
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: 200m
+      memory: 256Mi
+
+# Prometheus Server
+prometheus:
+  enabled: true
+
+  prometheusSpec:
+    # Scrape interval
+    scrapeInterval: 15s
+    evaluationInterval: 15s
+
+    # Retention
+    retention: 7d
+    retentionSize: 10GB
+
+    # Resources
+    resources:
+      requests:
+        cpu: 200m
+        memory: 512Mi
+      limits:
+        cpu: 1000m
+        memory: 2Gi
+
+    # Storage (EBS via gp3 storage class)
+    storageSpec:
+      volumeClaimTemplate:
+        spec:
+          storageClassName: gp3
+          accessModes: ["ReadWriteOnce"]
+          resources:
+            requests:
+              storage: 20Gi
+
+    # Service Monitor Selector - scrape all ServiceMonitors
+    serviceMonitorSelectorNilUsesHelmValues: false
+    podMonitorSelectorNilUsesHelmValues: false
+    ruleSelectorNilUsesHelmValues: false
+
+    # Additional scrape configs for nginx-ingress metrics
+    additionalScrapeConfigs:
+      - job_name: 'nginx-ingress-controller'
+        kubernetes_sd_configs:
+          - role: pod
+            namespaces:
+              names:
+                - ingress-nginx
+        relabel_configs:
+          - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_scrape]
+            action: keep
+            regex: true
+          - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_path]
+            action: replace
+            target_label: __metrics_path__
+            regex: (.+)
+          - source_labels: [__address__, __meta_kubernetes_pod_annotation_prometheus_io_port]
+            action: replace
+            regex: ([^:]+)(?::\d+)?;(\d+)
+            replacement: $1:$2
+            target_label: __address__
+
+  # Prometheus Service
+  service:
+    type: ClusterIP
+    port: 9090
+
+# Grafana
+grafana:
+  enabled: true
+
+  adminPassword: "admin"  # Change this in production!
+
+  # Resources
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+
+  # Persistence
+  persistence:
+    enabled: true
+    storageClassName: gp3
+    size: 5Gi
+
+  # Grafana.ini configuration
+  grafana.ini:
+    server:
+      root_url: "%(protocol)s://%(domain)s/grafana"
+      serve_from_sub_path: true
+
+  # Pre-configured dashboards
+  dashboardProviders:
+    dashboardproviders.yaml:
+      apiVersion: 1
+      providers:
+        - name: 'default'
+          orgId: 1
+          folder: ''
+          type: file
+          disableDeletion: false
+          editable: true
+          options:
+            path: /var/lib/grafana/dashboards/default
+        - name: 'nginx'
+          orgId: 1
+          folder: 'NGINX'
+          type: file
+          disableDeletion: false
+          editable: true
+          options:
+            path: /var/lib/grafana/dashboards/nginx
+        - name: 'keda'
+          orgId: 1
+          folder: 'KEDA'
+          type: file
+          disableDeletion: false
+          editable: true
+          options:
+            path: /var/lib/grafana/dashboards/keda
+
+  # Datasources
+  datasources:
+    datasources.yaml:
+      apiVersion: 1
+      datasources:
+        - name: Prometheus
+          type: prometheus
+          url: http://prometheus-prometheus:9090
+          access: proxy
+          isDefault: true
+
+  # Sidecar for dashboard discovery
+  sidecar:
+    dashboards:
+      enabled: true
+      label: grafana_dashboard
+      labelValue: "1"
+      searchNamespace: ALL
+
+  # Service
+  service:
+    type: ClusterIP
+    port: 80
+
+# Alertmanager
+alertmanager:
+  enabled: true
+
+  alertmanagerSpec:
+    resources:
+      requests:
+        cpu: 50m
+        memory: 64Mi
+      limits:
+        cpu: 100m
+        memory: 128Mi
+
+    storage:
+      volumeClaimTemplate:
+        spec:
+          storageClassName: gp3
+          accessModes: ["ReadWriteOnce"]
+          resources:
+            requests:
+              storage: 5Gi
+
+# Node Exporter (for node metrics)
+nodeExporter:
+  enabled: true
+
+# Kube State Metrics
+kubeStateMetrics:
+  enabled: true
+
+# Default rules
+defaultRules:
+  create: true
+  rules:
+    alertmanager: true
+    etcd: false  # EKS manages etcd
+    configReloaders: true
+    general: true
+    k8s: true
+    kubeApiserverAvailability: true
+    kubeApiserverBurnrate: true
+    kubeApiserverHistogram: true
+    kubeApiserverSlos: true
+    kubeControllerManager: false  # EKS manages controller
+    kubelet: true
+    kubeProxy: true
+    kubePrometheusGeneral: true
+    kubePrometheusNodeRecording: true
+    kubernetesApps: true
+    kubernetesResources: true
+    kubernetesStorage: true
+    kubernetesSystem: true
+    kubeSchedulerAlerting: false  # EKS manages scheduler
+    kubeSchedulerRecording: false
+    kubeStateMetrics: true
+    network: true
+    node: true
+    nodeExporterAlerting: true
+    nodeExporterRecording: true
+    prometheus: true
+    prometheusOperator: true

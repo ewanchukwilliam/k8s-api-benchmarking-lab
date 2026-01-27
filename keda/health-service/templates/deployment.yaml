@@ -21,6 +21,28 @@ spec:
         ports:
         - containerPort: {{ .Values.service.targetPort }}
 
+        env:
+        - name: POD_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.name
+        - name: POD_NAMESPACE
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
+        - name: NODE_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: spec.nodeName
+        {{- if .Values.redis.enabled }}
+        - name: REDIS_HOST
+          value: "redis"
+        - name: REDIS_PORT
+          value: "{{ .Values.redis.port }}"
+        - name: REDIS_URL
+          value: "redis://redis:{{ .Values.redis.port }}/0"
+        {{- end }}
+
         readinessProbe:
           httpGet:
             path: {{ .Values.readinessProbe.httpGet.path }}

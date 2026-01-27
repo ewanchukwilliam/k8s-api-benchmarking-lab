@@ -6,9 +6,49 @@ PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
 
 echo "=== Uninstalling Helm Releases ==="
 
+# Remove KEDA ScaledObject first (before removing KEDA)
+echo "Removing KEDA ScaledObjects..."
+kubectl delete scaledobject --all -n default 2>/dev/null || echo "No ScaledObjects found, skipping"
+
 # Uninstall health-service application
 echo "Removing health-service..."
 helm uninstall health-service 2>/dev/null || echo "health-service not found, skipping"
+
+# Uninstall KEDA
+echo "Removing KEDA..."
+helm uninstall keda --namespace keda 2>/dev/null || echo "keda not found, skipping"
+
+# Remove KEDA CRDs
+echo "Removing KEDA CRDs..."
+kubectl delete crd scaledobjects.keda.sh \
+  scaledjobs.keda.sh \
+  triggerauthentications.keda.sh \
+  clustertriggerauthentications.keda.sh 2>/dev/null || true
+
+# Remove ServiceMonitors and Grafana dashboards
+echo "Removing ServiceMonitors..."
+kubectl delete servicemonitor --all -n monitoring 2>/dev/null || true
+kubectl delete podmonitor --all -n monitoring 2>/dev/null || true
+
+echo "Removing Grafana dashboards..."
+kubectl delete configmap -l grafana_dashboard=1 -n monitoring 2>/dev/null || true
+
+# Uninstall Prometheus stack
+echo "Removing Prometheus stack..."
+helm uninstall prometheus --namespace monitoring 2>/dev/null || echo "prometheus not found, skipping"
+
+# Remove Prometheus CRDs
+echo "Removing Prometheus CRDs..."
+kubectl delete crd alertmanagerconfigs.monitoring.coreos.com \
+  alertmanagers.monitoring.coreos.com \
+  podmonitors.monitoring.coreos.com \
+  probes.monitoring.coreos.com \
+  prometheusagents.monitoring.coreos.com \
+  prometheuses.monitoring.coreos.com \
+  prometheusrules.monitoring.coreos.com \
+  scrapeconfigs.monitoring.coreos.com \
+  servicemonitors.monitoring.coreos.com \
+  thanosrulers.monitoring.coreos.com 2>/dev/null || true
 
 # Uninstall NGINX ingress controller
 echo "Removing nginx-ingress..."
@@ -26,8 +66,8 @@ kubectl delete clusterissuer --all -A 2>/dev/null || true
 echo "Removing cert-manager Helm release..."
 helm uninstall cert-manager --namespace cert-manager 2>/dev/null || echo "cert-manager not found, skipping"
 
-# Optional: remove cert-manager CRDs (good for ephemeral/dev clusters)
-echo "Removing cert-manager CRDs (if present)..."
+# Remove cert-manager CRDs
+echo "Removing cert-manager CRDs..."
 kubectl delete crd certificaterequests.cert-manager.io \
   certificates.cert-manager.io \
   challenges.acme.cert-manager.io \
@@ -40,9 +80,15 @@ echo "Removing cluster-autoscaler..."
 helm uninstall cluster-autoscaler --namespace kube-system 2>/dev/null || echo "cluster-autoscaler not found, skipping"
 
 echo ""
+echo "=== Cleaning up namespaces ==="
+kubectl delete namespace keda --ignore-not-found=true 2>/dev/null || true
+kubectl delete namespace monitoring --ignore-not-found=true 2>/dev/null || true
+kubectl delete namespace ingress-nginx --ignore-not-found=true 2>/dev/null || true
+kubectl delete namespace cert-manager --ignore-not-found=true 2>/dev/null || true
+
+echo ""
 echo "=== Waiting for Kubernetes Services to be deleted ==="
-# First check if any LoadBalancer services still exist in Kubernetes
-MAX_WAIT=180  # 3 minutes max
+MAX_WAIT=180
 ELAPSED=0
 while [ $ELAPSED -lt $MAX_WAIT ]; do
   LB_SERVICES=$(kubectl get svc --all-namespaces -o json 2>/dev/null | jq -r '.items[] | select(.spec.type=="LoadBalancer") | "\(.metadata.namespace)/\(.metadata.name)"' | wc -l || echo "999")
@@ -66,11 +112,9 @@ fi
 
 echo ""
 echo "=== Waiting for AWS LoadBalancers to be cleaned up ==="
-# Now verify AWS LoadBalancers are actually gone
-MAX_WAIT=300  # 5 minutes max
+MAX_WAIT=300
 ELAPSED=0
 while [ $ELAPSED -lt $MAX_WAIT ]; do
-  # Get VPC ID from cluster
   VPC_ID=$(aws ec2 describe-vpcs --region us-east-1 --filters "Name=tag:alpha.eksctl.io/cluster-name,Values=health-service-cluster-v3" --query 'Vpcs[0].VpcId' --output text 2>/dev/null)
 
   if [ "$VPC_ID" = "None" ] || [ -z "$VPC_ID" ]; then
@@ -78,7 +122,6 @@ while [ $ELAPSED -lt $MAX_WAIT ]; do
     break
   fi
 
-  # Count LoadBalancers in the VPC
   LB_COUNT=$(aws elbv2 describe-load-balancers --region us-east-1 2>/dev/null | jq -r --arg vpc "$VPC_ID" '.LoadBalancers[] | select(.VpcId==$vpc) | .LoadBalancerArn' | wc -l || echo "999")
 
   if [ "$LB_COUNT" -eq 0 ]; then
@@ -102,12 +145,10 @@ fi
 
 echo ""
 echo "=== Cleaning Up Metrics Server ==="
-# Delete EKS managed add-on
 eksctl delete addon --cluster health-service-cluster-v3 --name metrics-server --region us-east-1 || true
 
 echo ""
 echo "=== Deleting EKS Cluster ==="
-# Removed --disable-nodegroup-eviction to allow proper cleanup of pods and dependencies
 eksctl delete cluster -f "$SCRIPT_DIR/eks-cluster.yaml" --wait
 
 echo ""
@@ -116,4 +157,3 @@ echo ""
 echo "Optional cleanup:"
 echo "  - ECR repository: aws ecr delete-repository --repository-name health-service --force"
 echo "  - Route53 records: cd $PROJECT_ROOT/route53 && ./cleanup-hosted-zone.sh"
-

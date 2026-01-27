@@ -1,0 +1,89 @@
+# KEDA + Prometheus Stack for EKS
+# This file contains the configuration to deploy KEDA with Prometheus-based scaling
+#
+# Deployment Order:
+# 1. Install Prometheus Operator stack (prometheus-grafana-stack.yaml)
+# 2. Install KEDA (this file or via Helm)
+# 3. Apply ServiceMonitor for nginx metrics
+# 4. Apply ScaledObject for your workloads
+#
+# Prerequisites:
+# - EKS cluster with nginx-ingress-controller
+# - cert-manager with letsencrypt-prod issuer
+# - Helm 3.x installed
+#
+# Installation Commands:
+# ----------------------
+# # Add Helm repos
+# helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
+# helm repo add kedacore https://kedacore.github.io/charts
+# helm repo update
+#
+# # Install Prometheus stack
+# helm install prometheus prometheus-community/kube-prometheus-stack \
+#   --namespace monitoring \
+#   --create-namespace \
+#   -f prometheus-values.yaml
+#
+# # Install KEDA
+# helm install keda kedacore/keda \
+#   --namespace keda \
+#   --create-namespace \
+#   -f keda-values.yaml
+#
+# # Apply KEDA ScaledObject
+# kubectl apply -f keda-scaled-object.yaml
+
+---
+# Namespace for KEDA
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: keda
+  labels:
+    app.kubernetes.io/name: keda
+    app.kubernetes.io/component: operator
+
+---
+# Namespace for Monitoring
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: monitoring
+  labels:
+    app.kubernetes.io/name: prometheus
+    app.kubernetes.io/component: monitoring
+
+---
+# TriggerAuthentication for Prometheus (if auth is required)
+# This example assumes Prometheus is accessible without auth within the cluster
+apiVersion: keda.sh/v1alpha1
+kind: TriggerAuthentication
+metadata:
+  name: prometheus-auth
+  namespace: default
+spec:
+  # For basic auth (uncomment if needed):
+  # secretTargetRef:
+  #   - parameter: username
+  #     name: prometheus-credentials
+  #     key: username
+  #   - parameter: password
+  #     name: prometheus-credentials
+  #     key: password
+
+  # For bearer token auth (uncomment if needed):
+  # secretTargetRef:
+  #   - parameter: bearerToken
+  #     name: prometheus-credentials
+  #     key: token
+
+---
+# ClusterTriggerAuthentication for cluster-wide Prometheus access
+apiVersion: keda.sh/v1alpha1
+kind: ClusterTriggerAuthentication
+metadata:
+  name: prometheus-cluster-auth
+spec:
+  # Empty spec for unauthenticated access within cluster
+  # Add secretTargetRef if your Prometheus requires authentication

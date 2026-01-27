@@ -4,13 +4,13 @@ set -Eeuo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
 
+trap 'ec=$?; echo; echo "❌ FAILED (exit $ec) at line $LINENO:"; echo "   $BASH_COMMAND"; echo; exit $ec' ERR
 
 echo "=== Checking for SSL Certificate ==="
 SSL_ENABLED=false
 if [ -f "$PROJECT_ROOT/route53/.env.route53" ]; then
   source "$PROJECT_ROOT/route53/.env.route53"
-  if [ -n "$CERTIFICATE_ARN" ]; then
-    # Check certificate status
+  if [ -n "${CERTIFICATE_ARN:-}" ]; then
     CERT_STATUS=$(aws acm describe-certificate \
       --certificate-arn $CERTIFICATE_ARN \
       --region us-east-1 \
@@ -29,12 +29,11 @@ if [ -f "$PROJECT_ROOT/route53/.env.route53" ]; then
   fi
 fi
 
-echo "=== Building and Pushing to ECR DOCKER STUFF ==="
+echo "=== Building and Pushing to ECR ==="
 REGION=$AWS_DEFAULT_REGION
 REPO_NAME="health-service"
 ECR_IMAGE="$AWS_ACCOUNT_ID.dkr.ecr.$REGION.amazonaws.com/$REPO_NAME:latest"
 
-echo "=== Building and Pushing to ECR ==="
 aws ecr create-repository --repository-name $REPO_NAME --region $REGION 2>/dev/null || true
 aws ecr get-login-password --region $REGION | \
 docker login --username AWS --password-stdin $AWS_ACCOUNT_ID.dkr.ecr.$REGION.amazonaws.com
@@ -45,17 +44,12 @@ docker push $ECR_IMAGE
 echo "ECR Image: $ECR_IMAGE"
 echo ""
 
-# Uncomment to update pods quickly (comment everything else out for a running deployment)
-# kubectl rollout restart deployment health-service
-
-echo "=== Creating EKS remote cluster ==="
+echo "=== Creating EKS Cluster ==="
 eksctl create cluster -f "$SCRIPT_DIR/eks-cluster.yaml"
 echo ""
 
 echo "=== Deploying Metrics Server ==="
-echo "Installing metrics-server as EKS managed add-on..."
 eksctl create addon --cluster health-service-cluster-v3 --name metrics-server --force --region us-east-1 || true
-echo "Waiting for metrics-server to be ready..."
 kubectl wait --for=condition=ready pod -l k8s-app=metrics-server -n kube-system --timeout=120s || {
   echo "⚠️  Metrics-server taking longer than expected, checking status..."
   kubectl get pods -n kube-system -l k8s-app=metrics-server
@@ -64,14 +58,13 @@ echo ""
 
 echo "=== Installing cert-manager for HTTPS ==="
 helm repo add jetstack https://charts.jetstack.io
-helm repo update
+helm repo update jetstack
 helm install cert-manager jetstack/cert-manager \
   --namespace cert-manager \
   --create-namespace \
   --set crds.enabled=true \
   --set global.leaderElection.namespace=cert-manager
 
-echo "Waiting for cert-manager to be ready..."
 kubectl wait --for=condition=ready pod -l app.kubernetes.io/name=cert-manager -n cert-manager --timeout=120s
 echo ""
 
@@ -79,9 +72,9 @@ echo "=== Creating Let's Encrypt ClusterIssuer ==="
 kubectl apply -f "$SCRIPT_DIR/letsencrypt-issuer.yaml"
 echo ""
 
-echo "=== Deploying Cluster Autoscaler via Helm ==="
+echo "=== Deploying Cluster Autoscaler ==="
 helm repo add autoscaler https://kubernetes.github.io/autoscaler
-helm repo update
+helm repo update autoscaler
 helm install cluster-autoscaler autoscaler/cluster-autoscaler \
   --namespace kube-system \
   --set autoDiscovery.clusterName=health-service-cluster-v3 \
@@ -91,101 +84,111 @@ helm install cluster-autoscaler autoscaler/cluster-autoscaler \
   --set rbac.create=true
 echo ""
 
-echo "=== Installing NGINX Ingress Controller via Helm ==="
-# Add the ingress-nginx repository
+echo "=== Installing NGINX Ingress Controller ==="
 helm repo add ingress-nginx https://kubernetes.github.io/ingress-nginx
-helm repo update
-# Install NGINX ingress controller with autoscaling
-# For EKS, use LoadBalancer service type (default)
-# For kind/local, use NodePort (see values-local.yaml)
+helm repo update ingress-nginx
 helm install nginx-ingress ingress-nginx/ingress-nginx \
   --namespace ingress-nginx \
   --create-namespace \
   --set controller.service.type=LoadBalancer \
   --set controller.config.allow-snippet-annotations=true \
-  --set controller.autoscaling.enabled=true \
-  --set controller.autoscaling.minReplicas=2 \
-  --set controller.autoscaling.maxReplicas=10 \
-  --set controller.autoscaling.targetCPUUtilizationPercentage=70
-echo ""
+  --set controller.metrics.enabled=true \
+  --set controller.metrics.port=10254 \
+  --set controller.metrics.serviceMonitor.enabled=false \
+  --set controller.podAnnotations."prometheus\.io/scrape"=true \
+  --set controller.podAnnotations."prometheus\.io/port"=10254 \
+  --set controller.podAnnotations."prometheus\.io/path"=/metrics
 
-echo "=== Waiting for NGINX controller to be ready ==="
 kubectl wait --namespace ingress-nginx \
   --for=condition=ready pod \
   --selector=app.kubernetes.io/component=controller \
   --timeout=120s
-
-echo ""
-echo "=== NGINX Ingress Controller Status ==="
-kubectl get pods -n ingress-nginx
-kubectl get svc -n ingress-nginx
-kubectl get hpa -n ingress-nginx
-
-echo ""
-echo "=== LoadBalancer URL ==="
-kubectl get svc nginx-ingress-ingress-nginx-controller -n ingress-nginx -o jsonpath='{.status.loadBalancer.ingress[0].hostname}'
 echo ""
 
-echo "=== Deploying Health Service Application via Helm ==="
+echo "=== Installing Prometheus + Grafana Stack ==="
+helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
+helm repo update prometheus-community
+helm install prometheus prometheus-community/kube-prometheus-stack \
+  --namespace monitoring \
+  --create-namespace \
+  -f "$SCRIPT_DIR/prometheus-values.yaml"
 
-# Check if SSL certificate is available
-SSL_ENABLED=false
-if [ -f "$PROJECT_ROOT/route53/.env.route53" ]; then
-  source "$PROJECT_ROOT/route53/.env.route53"
-
-  if [ -n "$CERTIFICATE_ARN" ]; then
-    # Check certificate status
-    CERT_STATUS=$(aws acm describe-certificate \
-      --certificate-arn $CERTIFICATE_ARN \
-      --region us-east-1 \
-      --query 'Certificate.Status' \
-      --output text 2>/dev/null || echo "NOT_FOUND")
-
-    if [ "$CERT_STATUS" = "ISSUED" ]; then
-      SSL_ENABLED=true
-      echo "✅ SSL Certificate found and ready!"
-      echo "   Deploying with HTTPS enabled on port 443"
-    else
-      echo "⚠️  SSL Certificate exists but status: $CERT_STATUS"
-      echo "   Deploying with HTTP only (port 80)"
-    fi
-  fi
-fi
+echo "Waiting for Prometheus to be ready..."
+kubectl wait --for=condition=ready pod -l app.kubernetes.io/name=prometheus -n monitoring --timeout=180s || {
+  echo "⚠️  Prometheus taking longer than expected..."
+  kubectl get pods -n monitoring
+}
 echo ""
 
-# Deploy the application with Helm
-# Uses the image we pushed to ECR earlier
+echo "=== Applying ServiceMonitors ==="
+kubectl apply -f "$SCRIPT_DIR/nginx-servicemonitor.yaml"
+echo ""
+
+echo "=== Applying Grafana Dashboard ==="
+kubectl apply -f "$SCRIPT_DIR/grafana-keda-dashboard.yaml"
+echo ""
+
+echo "=== Installing KEDA ==="
+helm repo add kedacore https://kedacore.github.io/charts
+helm repo update kedacore
+helm install keda kedacore/keda \
+  --namespace keda \
+  --create-namespace \
+  -f "$SCRIPT_DIR/keda-values.yaml"
+
+echo "Waiting for KEDA to be ready..."
+kubectl wait --for=condition=ready pod -l app=keda-operator -n keda --timeout=120s
+echo ""
+
+echo "=== Deploying Health Service Application ==="
 ECR_REPO="$AWS_ACCOUNT_ID.dkr.ecr.$REGION.amazonaws.com/$REPO_NAME"
 
+# Deploy WITHOUT HPA (KEDA will manage scaling)
 if [ "$SSL_ENABLED" = true ]; then
   helm install health-service "$SCRIPT_DIR/health-service" \
     --set image.repository="$ECR_REPO" \
     --set image.tag=latest \
     --set service.ssl.enabled=true \
-    --set service.ssl.certificateArn="$CERTIFICATE_ARN"
+    --set service.ssl.certificateArn="${CERTIFICATE_ARN:-}" \
+    --set autoscaling.enabled=false
 else
   helm install health-service "$SCRIPT_DIR/health-service" \
     --set image.repository="$ECR_REPO" \
     --set image.tag=latest \
-    --set service.ssl.enabled=false
+    --set service.ssl.enabled=false \
+    --set autoscaling.enabled=false
 fi
 
-echo ""
 echo "Waiting for application pods to be ready..."
 kubectl wait --for=condition=ready pod --selector=app=health-service --timeout=120s
 echo ""
 
+echo "Waiting for Redis to be ready..."
+kubectl wait --for=condition=ready pod --selector=app=redis --timeout=120s
+echo ""
+
+echo "=== Applying KEDA ScaledObject ==="
+kubectl apply -f "$SCRIPT_DIR/keda-scaled-object.yaml"
+echo ""
+
 echo "=== Cluster Status ==="
 kubectl get nodes
-kubectl get pods
-kubectl get svc
-kubectl get hpa
+echo ""
+kubectl get pods -A
+echo ""
+
+echo "=== Services ==="
+kubectl get svc -A
+echo ""
+
+echo "=== KEDA ScaledObject Status ==="
+kubectl get scaledobject -n default
+kubectl get hpa -n default
 echo ""
 
 echo "=== LoadBalancer URL ==="
-# Get NGINX Ingress LoadBalancer (this is what handles all traffic)
 NLB_HOSTNAME=$(kubectl get svc nginx-ingress-ingress-nginx-controller -n ingress-nginx -o jsonpath='{.status.loadBalancer.ingress[0].hostname}')
-echo $NLB_HOSTNAME
+echo "NLB: $NLB_HOSTNAME"
 echo ""
 
 # Update DNS if Route 53 is configured
@@ -196,27 +199,19 @@ if [ -f "$PROJECT_ROOT/route53/.env.route53" ]; then
   echo ""
 
   echo "=== Your Endpoints ==="
-  echo "HTTP:  http://api.$DOMAIN/health"
-  if [ "$SSL_ENABLED" = true ]; then
-    echo "HTTPS: https://api.$DOMAIN/health ✅"
-  else
-    echo "HTTPS: Not configured yet"
-    echo ""
-    echo "To enable HTTPS:"
-    echo "  1. cd route53"
-    echo "  2. ./request-ssl-cert.sh"
-    echo "  3. ./add-ssl-validation.sh"
-    echo "  4. Wait 5-30 minutes for validation"
-    echo "  5. Redeploy cluster (./eks/deploy-eks.sh)"
-  fi
+  echo "App:        https://api.$DOMAIN/health"
+  echo "Prometheus: kubectl port-forward -n monitoring svc/prometheus-prometheus 9090:9090"
+  echo "Grafana:    kubectl port-forward -n monitoring svc/prometheus-grafana 3000:80"
+  echo "            Login: admin / admin"
   echo ""
 else
   echo "=== DNS Update Skipped ==="
   echo "Route 53 not configured. Run route53/setup-hosted-zone.sh to enable automatic DNS."
   echo ""
+  echo "=== Access Monitoring ==="
+  echo "Prometheus: kubectl port-forward -n monitoring svc/prometheus-prometheus 9090:9090"
+  echo "Grafana:    kubectl port-forward -n monitoring svc/prometheus-grafana 3000:80"
+  echo ""
 fi
 
-echo ""
-echo "Waiting for application to be ready..."
-
-trap 'ec=$?; echo; echo "❌ FAILED (exit $ec) at line $LINENO:"; echo "   $BASH_COMMAND"; echo; exit $ec' ERR
+echo "✅ Deployment complete with KEDA event-driven autoscaling!"

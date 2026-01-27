@@ -1,0 +1,165 @@
+# KEDA ScaledObject for health-service
+# Replaces traditional HPA with event-driven autoscaling using Prometheus metrics
+#
+# Apply with: kubectl apply -f keda-scaled-object.yaml
+
+---
+apiVersion: keda.sh/v1alpha1
+kind: ScaledObject
+metadata:
+  name: health-service-scaledobject
+  namespace: default
+  labels:
+    app: health-service
+    scaler: prometheus
+spec:
+  # Target deployment to scale
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: health-service
+
+  # Scaling boundaries
+  minReplicaCount: 2
+  maxReplicaCount: 10
+
+  # Cooldown periods (in seconds)
+  cooldownPeriod: 30        # Wait 30s after scale-down before next scale-down
+  pollingInterval: 15       # Check metrics every 15 seconds
+
+  # Advanced scaling behavior (similar to HPA v2)
+  advanced:
+    horizontalPodAutoscalerConfig:
+      behavior:
+        scaleUp:
+          stabilizationWindowSeconds: 0    # Immediate scale-up
+          policies:
+            - type: Percent
+              value: 100                    # Double pods
+              periodSeconds: 15
+            - type: Pods
+              value: 4                      # Or add 4 pods
+              periodSeconds: 15
+          selectPolicy: Max                 # Use whichever scales more
+
+        scaleDown:
+          stabilizationWindowSeconds: 30   # Wait 30s before scaling down
+          policies:
+            - type: Percent
+              value: 50                    # Remove 50% of pods
+              periodSeconds: 15
+          selectPolicy: Max
+
+  # Triggers - the metrics that drive scaling decisions
+  triggers:
+    # 1. HTTP Request Rate (requests per second per pod)
+    - type: prometheus
+      metadata:
+        serverAddress: http://prometheus-prometheus.monitoring.svc.cluster.local:9090
+        metricName: nginx_http_requests_rate
+        threshold: "100"                   # Scale when RPS > 100 per pod
+        query: |
+          sum(rate(nginx_ingress_controller_requests{
+            namespace="default",
+            service="health-service"
+          }[2m])) /
+          count(kube_pod_status_ready{
+            namespace="default",
+            pod=~"health-service.*",
+            condition="true"
+          })
+        # Authentication (if Prometheus requires it)
+        # authModes: "bearer"
+        # unsafeSsl: "false"
+
+    # 2. HTTP Request Latency (p95 response time)
+    - type: prometheus
+      metadata:
+        serverAddress: http://prometheus-prometheus.monitoring.svc.cluster.local:9090
+        metricName: nginx_http_latency_p95
+        threshold: "500"                   # Scale when p95 latency > 500ms
+        query: |
+          histogram_quantile(0.95,
+            sum(rate(nginx_ingress_controller_request_duration_seconds_bucket{
+              namespace="default",
+              service="health-service"
+            }[5m])) by (le)
+          ) * 1000
+
+    # 3. Active Connections (concurrent connections)
+    - type: prometheus
+      metadata:
+        serverAddress: http://prometheus-prometheus.monitoring.svc.cluster.local:9090
+        metricName: nginx_active_connections
+        threshold: "50"                    # Scale when connections > 50 per pod
+        query: |
+          sum(nginx_ingress_controller_nginx_process_connections{
+            state="active"
+          }) /
+          count(kube_pod_status_ready{
+            namespace="default",
+            pod=~"health-service.*",
+            condition="true"
+          })
+
+    # 4. CPU Utilization (fallback metric, similar to original HPA)
+    - type: prometheus
+      metadata:
+        serverAddress: http://prometheus-prometheus.monitoring.svc.cluster.local:9090
+        metricName: health_service_cpu_utilization
+        threshold: "70"                    # Scale at 70% CPU (matches original HPA)
+        query: |
+          avg(
+            rate(container_cpu_usage_seconds_total{
+              namespace="default",
+              pod=~"health-service.*",
+              container="health-service"
+            }[2m])
+          ) * 100 /
+          avg(
+            kube_pod_container_resource_requests{
+              namespace="default",
+              pod=~"health-service.*",
+              container="health-service",
+              resource="cpu"
+            }
+          )
+
+    # 5. Memory Utilization
+    - type: prometheus
+      metadata:
+        serverAddress: http://prometheus-prometheus.monitoring.svc.cluster.local:9090
+        metricName: health_service_memory_utilization
+        threshold: "80"                    # Scale at 80% memory
+        query: |
+          avg(
+            container_memory_working_set_bytes{
+              namespace="default",
+              pod=~"health-service.*",
+              container="health-service"
+            }
+          ) * 100 /
+          avg(
+            kube_pod_container_resource_requests{
+              namespace="default",
+              pod=~"health-service.*",
+              container="health-service",
+              resource="memory"
+            }
+          )
+
+---
+# Fallback HPA (KEDA creates this automatically, but you can customize)
+# This is optional - KEDA manages the HPA, but showing for reference
+# apiVersion: autoscaling/v2
+# kind: HorizontalPodAutoscaler
+# metadata:
+#   name: keda-hpa-health-service
+#   namespace: default
+# spec:
+#   scaleTargetRef:
+#     apiVersion: apps/v1
+#     kind: Deployment
+#     name: health-service
+#   minReplicas: 2
+#   maxReplicas: 10

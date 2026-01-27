@@ -2,6 +2,21 @@
 
 replicaCount: 1
 
+# Redis configuration
+redis:
+  enabled: true
+  image:
+    repository: redis
+    tag: "7"
+  port: 6379
+  resources:
+    requests:
+      memory: "64Mi"
+      cpu: "50m"
+    limits:
+      memory: "128Mi"
+      cpu: "100m"
+
 image:
   repository: ""  # Set dynamically via --set in deploy script
   tag: latest

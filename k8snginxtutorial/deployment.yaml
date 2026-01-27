@@ -1,73 +1,24 @@
-apiVersion: apps/v1  # Kubernetes API version for Deployments (stable version)
-kind: Deployment  # Type of resource - manages a set of identical pods
-metadata:  # Information about this Deployment
-  name: health-service  # Name of the Deployment (used in kubectl commands) → MUST MATCH hpa.yaml line 11
-  # namespace: default  # Optional: Namespace (defaults to 'default')
-  labels:  # Key-value pairs for organizing/selecting resources
-    app: health-service  # Label to identify this as part of health-service app (not used for matching, just organization)
-    # version: v1  # Optional: version label for canary/blue-green deployments
-  # annotations:  # Optional: Non-identifying metadata
-  #   description: "Health monitoring service"
-  #   owner: "platform-team"
-spec:  # Desired state specification
-  replicas: 5  # Number of pod copies to run (change this to scale manually)
-  # revisionHistoryLimit: 10  # Optional: Number of old ReplicaSets to keep (default: 10)
-  # progressDeadlineSeconds: 600  # Optional: Max time for deployment to progress (default: 600s)
-  # minReadySeconds: 0  # Optional: Min time pod must be ready before considered available
-  # strategy:  # Optional: How to replace old pods with new ones
-  #   type: RollingUpdate  # RollingUpdate (default) or Recreate
-  #   rollingUpdate:
-  #     maxUnavailable: 1  # Max pods unavailable during update (number or %)
-  #     maxSurge: 1  # Max extra pods during update (number or %)
-  selector:  # How this Deployment finds which pods it manages
-    matchLabels:  # Pods with these labels are managed by this Deployment
-      app: health-service  # → MUST MATCH template.metadata.labels.app below (line 28)
-  template:  # Blueprint for creating pods
-    metadata:  # Metadata for each pod created
-      labels:  # Labels applied to each pod (must match selector above)
-        app: health-service  # → MUST MATCH selector.matchLabels.app above (line 24) AND service-clusterip.yaml selector (line 23)
-      # annotations:  # Optional: Pod annotations
-      #   prometheus.io/scrape: "true"  # Example: enable Prometheus scraping
-      #   prometheus.io/port: "8080"
-    spec:  # Pod specification - what runs inside each pod
-      # serviceAccountName: default  # Optional: ServiceAccount for pod (default: "default")
-      # imagePullSecrets:  # Optional: Secrets for pulling from private registries
-      # - name: ecr-secret  # Reference to Secret containing registry credentials
-      # nodeSelector:  # Optional: Schedule pods only on nodes with these labels
-      #   disktype: ssd  # Example: only nodes with SSD storage
-      #   zone: us-east-1a
-      # tolerations:  # Optional: Allow pods on nodes with matching taints
-      # - key: "dedicated"
-      #   operator: "Equal"
-      #   value: "compute"
-      #   effect: "NoSchedule"
-      # affinity:  # Optional: Advanced pod scheduling rules
-      #   nodeAffinity:  # Where pods prefer/require to be scheduled
-      #     requiredDuringSchedulingIgnoredDuringExecution:
-      #       nodeSelectorTerms:
-      #       - matchExpressions:
-      #         - key: kubernetes.io/arch
-      #           operator: In
-      #           values: [amd64, arm64]
-      #   podAntiAffinity:  # Don't schedule pods on same node
-      #     preferredDuringSchedulingIgnoredDuringExecution:
-      #     - weight: 100
-      #       podAffinityTerm:
-      #         labelSelector:
-      #           matchExpressions:
-      #           - key: app
-      #             operator: In
-      #             values: [health-service]
-      #         topologyKey: kubernetes.io/hostname
-      # restartPolicy: Always  # Optional: Always (default), OnFailure, Never
-      # terminationGracePeriodSeconds: 30  # Optional: Time to wait before killing pod (default: 30)
-      # dnsPolicy: ClusterFirst  # Optional: ClusterFirst (default), Default, None
-      containers:  # List of containers in the pod (usually just one)
-      - name: health-service  # Container name (shown in logs)
-        image: health-service:local  # Docker image to use (change to ECR URL for EKS)
-        imagePullPolicy: Never  # Don't pull from registry, use local image (change to "Always" for ECR)
+apiVersion: apps/v1  
+kind: Deployment  
+metadata:  
+  name: health-service  
+  labels:  
+    app: health-service  
+spec:  
+  replicas: 5  
+  selector:  
+    matchLabels:  
+      app: health-service  
+  template:  
+    metadata:  
+      labels:  
+        app: health-service  
+    spec:  
+      containers:  
+      - name: health-service  
+        image: health-service:local  
+        imagePullPolicy: Never  
         env:
-          # Downward API
           - name: POD_NAME
             valueFrom:
               fieldRef:
@@ -80,138 +31,25 @@ spec:  # Desired state specification
             valueFrom:
               fieldRef:
                 fieldPath: spec.nodeName
-
-          # Redis (matches your current Python)
           - name: REDIS_HOST
-            value: "redis"                # Service name, NOT a URL
+            value: "redis"                
           - name: REDIS_PORT
             value: "6379"
           - name: REDIS_URL
             value: "redis://redis:6379/0"
-        # args:  # Optional: Override container CMD
-        # - "--port=8080"
-        # - "--log-level=info"
-        # command:  # Optional: Override container ENTRYPOINT
-        # - /app/server
-        # env:  # Optional: Environment variables
-        # - name: LOG_LEVEL  # Simple key-value
-        #   value: "info"
-        # - name: DATABASE_URL  # From Secret
-        #   valueFrom:
-        #     secretKeyRef:
-        #       name: db-secret
-        #       key: url
-        # - name: POD_NAME  # From pod metadata
-        #   valueFrom:
-        #     fieldRef:
-        #       fieldPath: metadata.name
-        # envFrom:  # Optional: Load all keys from ConfigMap/Secret as env vars
-        # - configMapRef:
-        #     name: app-config
-        # - secretRef:
-        #     name: app-secrets
-        ports:  # Which ports the container exposes
-        - containerPort: 8080  # Port your app listens on inside the container → MUST MATCH service-clusterip.yaml targetPort (line 26)
-          # name: http  # Optional: Name for this port (not used for matching)
-          # protocol: TCP  # Optional: TCP (default) or UDP
-        resources:  # Resource limits and requests for scheduling
-          requests:  # Minimum resources needed (used for scheduling decisions)
-            memory: "256Mi"  # Minimum RAM guaranteed (change based on app needs)
-            cpu: "500m"  # Minimum CPU guaranteed (500m = 0.5 CPU cores)
-          limits:  # Maximum resources allowed (prevents runaway usage)
-            memory: "512Mi"  # Max RAM before pod gets OOMKilled (change to prevent crashes)
-            cpu: "1000m"  # Max CPU (1000m = 1 full CPU core)
-        # livenessProbe:  # Optional: Check if container is alive (restart if fails)
-        #   httpGet:  # HTTP health check
-        #     path: /health  # Endpoint to check
-        #     port: 8080
-        #     # httpHeaders:  # Optional: custom headers
-        #     # - name: Custom-Header
-        #     #   value: value
-        #   initialDelaySeconds: 30  # Wait before first check (let app start)
-        #   periodSeconds: 10  # Check every 10 seconds
-        #   timeoutSeconds: 5  # Request timeout
-        #   successThreshold: 1  # Min consecutive successes (must be 1 for liveness)
-        #   failureThreshold: 3  # Failures before restart
-        #   # Alternative: TCP check
-        #   # tcpSocket:
-        #   #   port: 8080
-        #   # Alternative: Execute command
-        #   # exec:
-        #   #   command:
-        #   #   - cat
-        #   #   - /tmp/healthy
-        # readinessProbe:  # Optional: Check if container ready for traffic (remove from service if fails)
-        #   httpGet:
-        #     path: /health
-        #     port: 8080
-        #   initialDelaySeconds: 5  # Can be shorter than liveness
-        #   periodSeconds: 5  # Check more frequently
-        #   timeoutSeconds: 3
-        #   successThreshold: 1  # Successes before marking ready
-        #   failureThreshold: 3  # Failures before removing from service
-        # startupProbe:  # Optional: Check if app has started (disables liveness until passes)
-        #   httpGet:
-        #     path: /health
-        #     port: 8080
-        #   initialDelaySeconds: 0
-        #   periodSeconds: 10
-        #   timeoutSeconds: 3
-        #   successThreshold: 1
-        #   failureThreshold: 30  # Allow 5 minutes to start (30 * 10s)
-        # lifecycle:  # Optional: Hooks for container lifecycle events
-        #   postStart:  # Run immediately after container starts
-        #     exec:
-        #       command: ["/bin/sh", "-c", "echo Hello from postStart > /tmp/poststart"]
-        #   preStop:  # Run before container terminates (graceful shutdown)
-        #     exec:
-        #       command: ["/bin/sh", "-c", "sleep 15"]  # Wait for connections to drain
-        # securityContext:  # Optional: Security settings for this container
-        #   runAsUser: 1000  # Run as specific user ID
-        #   runAsGroup: 3000  # Run as specific group ID
-        #   runAsNonRoot: true  # Require non-root user
-        #   readOnlyRootFilesystem: true  # Make root filesystem read-only
-        #   allowPrivilegeEscalation: false  # Don't allow gaining more privileges
-        #   capabilities:  # Linux capabilities
-        #     drop:
-        #     - ALL  # Drop all capabilities
-        #     add:
-        #     - NET_BIND_SERVICE  # Add back specific capabilities
-        # stdin: false  # Optional: Allocate stdin (default: false)
-        # tty: false  # Optional: Allocate TTY (default: false)
-        # workingDir: /app  # Optional: Working directory inside container
-        volumeMounts:  # Mount volumes into the container
-        - name: docker-sock  # Name of volume to mount (matches volumes below)
-          mountPath: /var/run/docker.sock  # Where to mount inside container
-      volumes:  # Volumes available to containers in this pod
-      - name: docker-sock  # Volume name (referenced in volumeMounts)
-        hostPath:  # Mount a path from the node's filesystem
-          path: /var/run/docker.sock  # Docker socket on host (usually not needed in production)
-          # type: File  # Optional: File, Directory, Socket, etc.
-      # Optional volume types:
-      # - name: config-volume  # ConfigMap volume
-      #   configMap:
-      #     name: app-config  # ConfigMap name
-      #     # items:  # Optional: select specific keys
-      #     # - key: app.conf
-      #     #   path: config/app.conf
-      # - name: secret-volume  # Secret volume
-      #   secret:
-      #     secretName: app-secrets
-      #     # defaultMode: 0400  # File permissions
-      # - name: empty-dir  # Temporary storage (deleted with pod)
-      #   emptyDir: {}
-      #     # medium: Memory  # Use RAM instead of disk
-      #     # sizeLimit: 1Gi  # Max size
-      # - name: pvc-storage  # Persistent storage
-      #   persistentVolumeClaim:
-      #     claimName: my-pvc  # PersistentVolumeClaim name
-      # - name: nfs-volume  # NFS mount
-      #   nfs:
-      #     server: nfs-server.example.com
-      #     path: /exported/path
-      # - name: aws-ebs  # AWS EBS volume
-      #   awsElasticBlockStore:
-      #     volumeID: vol-1234567890abcdef0
-      #     fsType: ext4
-
+        ports:  
+        - containerPort: 8080  
+        resources:  
+          requests:  
+            memory: "256Mi"  
+            cpu: "500m"  
+          limits:  
+            memory: "512Mi"  
+            cpu: "1000m"  
+        volumeMounts:  
+        - name: docker-sock  
+          mountPath: /var/run/docker.sock  
+      volumes:  
+      - name: docker-sock  
+        hostPath:  
+          path: /var/run/docker.sock  
