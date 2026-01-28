@@ -4,18 +4,12 @@ set -e
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
 
-# kind delete cluster --name devops-lab 2>/dev/null || true
-# kind create cluster --name devops-lab --config "$SCRIPT_DIR/kind/kind-config.yaml"
-#
-# cd "$PROJECT_ROOT"
-# docker build -t health-service:local .
-# kind load docker-image health-service:local --name devops-lab
-#
-# kubectl apply -f "$SCRIPT_DIR/ingress-controller.yaml"
-# kubectl wait --namespace ingress-nginx \
-#   --for=condition=ready pod \
-#   --selector=app.kubernetes.io/component=controller \
-#   --timeout=90s
+kind delete cluster --name devops-lab 2>/dev/null || true
+kind create cluster --name devops-lab --config "$SCRIPT_DIR/kind/kind-config.yaml"
+
+cd "$PROJECT_ROOT"
+docker build -t health-service:local .
+kind load docker-image health-service:local --name devops-lab
 
 echo "=== Installing Metrics Server via Helm ==="
 # Metrics Server is required for HPA (Horizontal Pod Autoscaler) to work
@@ -28,7 +22,7 @@ echo "=== Installing Metrics Server via Helm ==="
 # In production (EKS/GKE), you can omit these args for proper TLS
 helm repo add metrics-server https://kubernetes-sigs.github.io/metrics-server/
 helm repo update
-helm install metrics-server metrics-server/metrics-server \
+helm upgrade --install metrics-server metrics-server/metrics-server \
   --namespace kube-system \
   --set args[0]="--kubelet-insecure-tls" \
   --set args[1]="--kubelet-preferred-address-types=InternalIP"
@@ -43,7 +37,24 @@ kubectl wait --namespace kube-system \
 }
 echo ""
 
-kubectl apply -f "$SCRIPT_DIR/"
+# Apply everything except ingress first
+kubectl apply -f "$SCRIPT_DIR/deployment.yaml"
+kubectl apply -f "$SCRIPT_DIR/deployment-redis.yaml"
+kubectl apply -f "$SCRIPT_DIR/service-clusterip.yaml"
+kubectl apply -f "$SCRIPT_DIR/service-redis.yaml"
+kubectl apply -f "$SCRIPT_DIR/hpa.yaml"
+kubectl apply -f "$SCRIPT_DIR/ingress-controller.yaml"
+
+# Wait for ingress controller to be ready before applying ingress
+echo "Waiting for ingress controller to be ready..."
+kubectl wait --namespace ingress-nginx \
+  --for=condition=ready pod \
+  --selector=app.kubernetes.io/component=controller \
+  --timeout=120s
+
+# Now apply the ingress
+kubectl apply -f "$SCRIPT_DIR/ingress.yaml"
+
 kubectl wait --for=condition=ready pod --selector=app=health-service --timeout=60s
 
 kubectl get pods

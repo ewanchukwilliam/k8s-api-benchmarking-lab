@@ -478,6 +478,18 @@ async def return_page():
                     <div class="tag">Internal · Diagnostics</div>
                 </div>
 
+                <!-- Load Testing Instructions -->
+                <div style="background: rgba(30, 64, 175, 0.15); border: 1px solid rgba(56, 189, 248, 0.3); border-radius: 10px; padding: 14px 16px; margin-bottom: 18px;">
+                    <div style="font-size: 0.85rem; font-weight: 500; margin-bottom: 8px; color: var(--accent);">Load Testing with K6</div>
+                    <div style="font-size: 0.8rem; color: var(--text-muted); line-height: 1.5;">
+                        Test autoscaling by running K6 against these endpoints:<br>
+                        <code style="background: rgba(15, 23, 42, 0.8); padding: 2px 6px; border-radius: 4px; font-size: 0.75rem;">https://api.codeseeker.dev/health</code> or
+                        <code style="background: rgba(15, 23, 42, 0.8); padding: 2px 6px; border-radius: 4px; font-size: 0.75rem;">https://api.codeseeker.dev/metrics</code><br><br>
+                        <strong style="color: var(--text-main);">Suggested config:</strong> ~100 VUs for 5 minutes<br><br>
+                        Then open the <strong style="color: var(--accent);">Redis CPU View</strong> below to watch containers scale in real-time as load increases.
+                    </div>
+                </div>
+
                 <!-- Overview / static -->
                 <div id="default-section">
                     <div class="stats">
