@@ -738,7 +738,7 @@ async def return_page():
                             const card = document.createElement("div");
                             card.className = "data-card";
 
-                            const ts = new Date(item.ts * 1000);
+                            const ts = new Date(item.ts * 2000);
                             const tsLabel = ts.toLocaleTimeString();
 
                             card.innerHTML = `
@@ -784,7 +784,7 @@ async def return_page():
                     loadRedisData();
 
                     if (autoRedisRefreshId === null) {
-                        autoRedisRefreshId = setInterval(loadRedisData, 1000);
+                        autoRedisRefreshId = setInterval(loadRedisData, 2000);
                     }
                 });
 
