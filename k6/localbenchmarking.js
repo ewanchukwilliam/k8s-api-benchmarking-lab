@@ -1,7 +1,7 @@
 import http from 'k6/http';
 import { check, sleep } from 'k6';
 
-const num = 500;
+const num = 1000;
 export const options = {
   stages: [
     { duration: '15s', target: num },
