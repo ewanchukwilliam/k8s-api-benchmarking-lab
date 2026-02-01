@@ -68,6 +68,9 @@ kubectl apply -f "$SCRIPT_DIR/keda-scaledobject.yaml"
 echo "=== Waiting for application ==="
 kubectl wait --for=condition=ready pod --selector=app=health-service --timeout=60s
 
+echo "=== Dashboard analytics for Grafana ==="
+kubectl apply -f "$SCRIPT_DIR/grafana/health-service-dashboard.yaml"
+
 echo ""
 echo "=== Status ==="
 kubectl get pods

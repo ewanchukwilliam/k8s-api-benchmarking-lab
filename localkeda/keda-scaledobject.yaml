@@ -12,7 +12,7 @@ spec:
     name: health-service
 
   minReplicaCount: 2
-  maxReplicaCount: 12
+  maxReplicaCount: 10
   cooldownPeriod: 30
   pollingInterval: 15
 

@@ -106,19 +106,20 @@ def get_process_metrics() -> Dict:
             "open_files": 0,
             "connections": 0
         }
-@app.get("/ping", response_model=Dict)
-async def ping():
-    """benchmarking endpoint"""
-    return {
-        "status": "ok",
-        "feeling": "good",
-        "hell": "yeah"
-    }
 
 @app.get("/health", response_model=HealthResponse)
 async def health_check():
     """Health check endpoint with current resource usage"""
-    metrics = get_process_metrics()
+    ns = os.getenv("POD_NAMESPACE", "default")
+    pod = os.getenv("POD_NAME", "unknown")
+    key = f"metrics-cache:{ns}:{pod}"
+    metrics = {}
+    metrics = r.get(key)
+    if metrics:
+        metrics = json.loads(r.get(key))
+    else:
+        metrics = get_process_metrics()
+        r.set(key, json.dumps(metrics), ex=5)
 
     health_status = {
         "status": "ok",
