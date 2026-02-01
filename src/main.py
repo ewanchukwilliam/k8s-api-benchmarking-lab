@@ -73,70 +73,61 @@ async def root():
 
 def get_process_metrics() -> Dict:
     """Get current process resource usage"""
-    try:
-        # Non-blocking CPU check (interval=0 returns instantly)
-        cpu_percent = process.cpu_percent(interval=0)
-        memory_info = process.memory_info()
-        memory_mb = round(memory_info.rss / 1024 / 1024, 2)
-        memory_percent = round(process.memory_percent(), 2)
-        num_threads = process.num_threads()
-        try:
-            open_files = len(process.open_files())
-        except:
-            open_files = 0
-        try:
-            connections = len(process.connections())
-        except:
-            connections = 0
-        return {
-            "cpu_percent": round(cpu_percent, 2),
-            "memory_mb": memory_mb,
-            "memory_percent": memory_percent,
-            "num_threads": num_threads,
-            "open_files": open_files,
-            "connections": connections
-        }
-    except Exception as e:
-        logger.error(f"Error getting process metrics: {e}")
-        return {
-            "cpu_percent": 0.0,
-            "memory_mb": 0.0,
-            "memory_percent": 0.0,
-            "num_threads": 0,
-            "open_files": 0,
-            "connections": 0
-        }
+    cpu_percent = process.cpu_percent(interval=0)
+    memory_info = process.memory_info()
+    memory_mb = round(memory_info.rss / 1024 / 1024, 2)
+    memory_percent = round(process.memory_percent(), 2)
+    num_threads = process.num_threads()
+    open_files = len(process.open_files())
+    connections = len(process.connections())
+
+    return {
+        "cpu_percent": round(cpu_percent, 2),
+        "memory_mb": memory_mb,
+        "memory_percent": memory_percent,
+        "num_threads": num_threads,
+        "open_files": open_files,
+        "connections": connections
+    }
 
 @app.get("/health", response_model=HealthResponse)
 async def health_check():
     """Health check endpoint with current resource usage"""
     ns = os.getenv("POD_NAMESPACE", "default")
     pod = os.getenv("POD_NAME", "unknown")
-    key = f"metrics-cache:{ns}:{pod}"
-    metrics = {}
-    metrics = r.get(key)
-    if metrics:
-        metrics = json.loads(r.get(key))
+    key = f"health-cache:{ns}:{pod}"
+    health = r.get(key)
+    if health:
+        health = json.loads(r.get(key))
     else:
-        metrics = get_process_metrics()
-        r.set(key, json.dumps(metrics), ex=5)
+        health = get_process_metrics()
+        r.set(key, json.dumps(health), ex=5)
 
     health_status = {
         "status": "ok",
         "timestamp": datetime.utcnow().isoformat(),
-        "cpu_percent": metrics["cpu_percent"],
-        "memory_mb": metrics["memory_mb"],
-        "memory_percent": metrics["memory_percent"]
+        "cpu_percent": health["cpu_percent"],
+        "memory_mb": health["memory_mb"],
+        "memory_percent": health["memory_percent"]
     }
 
-    logger.info(f"Health check: CPU={metrics['cpu_percent']}%, Memory={metrics['memory_mb']}MB")
+    logger.info(f"Health check: CPU={health['cpu_percent']}%, Memory={health['memory_mb']}MB")
     return health_status
 
 
 @app.get("/metrics", response_model=ProcessMetrics)
 async def get_metrics():
     """Get detailed process resource metrics"""
-    metrics = get_process_metrics()
+    ns = os.getenv("POD_NAMESPACE", "default")
+    pod = os.getenv("POD_NAME", "unknown")
+    key = f"metrics-cache:{ns}:{pod}"
+    metrics = r.get(key)
+    if metrics:
+        metrics = json.loads(metrics)
+    else:
+        metrics = get_process_metrics()
+        r.set(key, json.dumps(metrics), ex=5)
+
 
     response = ProcessMetrics(
         cpu_percent=metrics["cpu_percent"],
