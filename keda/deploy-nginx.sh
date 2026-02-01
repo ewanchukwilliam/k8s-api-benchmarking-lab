@@ -94,7 +94,8 @@ helm install nginx-ingress ingress-nginx/ingress-nginx \
   --set controller.config.allow-snippet-annotations=true \
   --set controller.metrics.enabled=true \
   --set controller.metrics.port=10254 \
-  --set controller.metrics.serviceMonitor.enabled=false \
+  --set controller.metrics.serviceMonitor.enabled=true \
+  --set controller.metrics.serviceMonitor.namespace=monitoring \
   --set controller.podAnnotations."prometheus\.io/scrape"=true \
   --set controller.podAnnotations."prometheus\.io/port"=10254 \
   --set controller.podAnnotations."prometheus\.io/path"=/metrics
@@ -120,8 +121,6 @@ kubectl wait --for=condition=ready pod -l app.kubernetes.io/name=prometheus -n m
 }
 echo ""
 
-echo "=== Applying ServiceMonitors ==="
-kubectl apply -f "$SCRIPT_DIR/nginx-servicemonitor.yaml"
 echo ""
 
 echo "=== Applying Grafana Dashboard ==="

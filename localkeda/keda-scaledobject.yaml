@@ -1,0 +1,86 @@
+apiVersion: keda.sh/v1alpha1
+kind: ScaledObject
+metadata:
+  name: health-service-scaledobject
+  namespace: default
+  labels:
+    app: health-service
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: health-service
+
+  minReplicaCount: 2
+  maxReplicaCount: 10
+  cooldownPeriod: 30
+  pollingInterval: 15
+
+  advanced:
+    horizontalPodAutoscalerConfig:
+      behavior:
+        scaleUp:
+          stabilizationWindowSeconds: 0
+          policies:
+            - type: Percent
+              value: 100
+              periodSeconds: 15
+            - type: Pods
+              value: 4
+              periodSeconds: 15
+          selectPolicy: Max
+
+        scaleDown:
+          stabilizationWindowSeconds: 30
+          policies:
+            - type: Percent
+              value: 50
+              periodSeconds: 15
+          selectPolicy: Max
+
+  triggers:
+    # CPU % - primary trigger for local testing
+    - type: prometheus
+      metadata:
+        serverAddress: http://prometheus-kube-prometheus-prometheus.monitoring.svc.cluster.local:9090
+        metricName: health_service_cpu_utilization
+        threshold: "70"
+        query: |
+          avg(
+            rate(container_cpu_usage_seconds_total{
+              namespace="default",
+              pod=~"health-service.*",
+              container="health-service"
+            }[2m])
+          ) * 100 /
+          avg(
+            kube_pod_container_resource_requests{
+              namespace="default",
+              pod=~"health-service.*",
+              container="health-service",
+              resource="cpu"
+            }
+          )
+
+    # Memory %
+    - type: prometheus
+      metadata:
+        serverAddress: http://prometheus-kube-prometheus-prometheus.monitoring.svc.cluster.local:9090
+        metricName: health_service_memory_utilization
+        threshold: "80"
+        query: |
+          avg(
+            container_memory_working_set_bytes{
+              namespace="default",
+              pod=~"health-service.*",
+              container="health-service"
+            }
+          ) * 100 /
+          avg(
+            kube_pod_container_resource_requests{
+              namespace="default",
+              pod=~"health-service.*",
+              container="health-service",
+              resource="memory"
+            }
+          )
