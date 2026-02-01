@@ -1,7 +1,7 @@
 import http from 'k6/http';
 import { check, sleep } from 'k6';
 
-const num = 500;
+const num = 2000;
 export const options = {
   stages: [
     { duration: '15s', target: num },
@@ -11,7 +11,7 @@ export const options = {
 };
 
 export default function () {
-  const res = http.get('http://localhost/health');
+  const res = http.get('http://localhost/ping');
 
   check(res, {
     'status is 200': (r) => r.status === 200,

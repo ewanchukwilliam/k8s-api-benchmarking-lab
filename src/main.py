@@ -106,7 +106,14 @@ def get_process_metrics() -> Dict:
             "open_files": 0,
             "connections": 0
         }
-
+@app.get("/ping", response_model=Dict)
+async def ping():
+    """Health check endpoint with current resource usage"""
+    return {
+        "status": "ok",
+        "feeling": "good",
+        "hell": "yeah"
+    }
 
 @app.get("/health", response_model=HealthResponse)
 async def health_check():
