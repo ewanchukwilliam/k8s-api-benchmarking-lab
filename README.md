@@ -17,6 +17,7 @@ the app itself is intentionaly simple ('\health' endpoint returing json) the fou
 - [x] Kubrnetes deployment with event driven scaling with KEDA
 - [x] deploy to EKS with terraform
 - [x] configure terraform to replace eksctl
+- [ ] fix the initial spinup procedure getting bad pomql data and using all pod resources
 - [ ] configure route53 to be ephemeral and less hardcoded so domains can be swapped out easily. 
 - [ ] see if you can add a database for the application :) then you get s3 experience <3
 - [ ] define a temporary deploymetn procedure for a main branch with a cron job to turn off. 
