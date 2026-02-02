@@ -1,0 +1,11 @@
+# Prod overrides for Redis (EKS)
+# Persistence enabled, larger resources
+
+master:
+  persistence:
+    enabled: true
+    size: 8Gi
+  resources:
+    requests:
+      cpu: 250m
+      memory: 256Mi

@@ -1,0 +1,18 @@
+# Prod environment: larger resources for EKS
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: health-service
+spec:
+  replicas: 3
+  template:
+    spec:
+      containers:
+        - name: health-service
+          resources:
+            requests:
+              cpu: 500m
+              memory: 256Mi
+            limits:
+              cpu: "1"
+              memory: 512Mi

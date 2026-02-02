@@ -1,0 +1,58 @@
+# Helm values for ingress-nginx
+# Chart: https://github.com/kubernetes/ingress-nginx/tree/main/charts/ingress-nginx
+
+controller:
+  # Kind-specific: use hostPort to bind to localhost:80/443
+  hostPort:
+    enabled: true
+    ports:
+      http: 80
+      https: 443
+
+  # Node selector for Kind
+  nodeSelector:
+    ingress-ready: "true"
+    kubernetes.io/os: linux
+
+  tolerations:
+    - key: node-role.kubernetes.io/master
+      operator: Equal
+      effect: NoSchedule
+    - key: node-role.kubernetes.io/control-plane
+      operator: Equal
+      effect: NoSchedule
+
+  # Service type for Kind
+  service:
+    type: NodePort
+
+  # Resources
+  resources:
+    requests:
+      cpu: 500m
+      memory: 256Mi
+
+  # Enable Prometheus metrics
+  metrics:
+    enabled: true
+    serviceMonitor:
+      enabled: true
+      namespace: monitoring
+      additionalLabels:
+        release: prometheus  # Must match Prometheus selector
+
+  # ConfigMap settings for detailed metrics and logging
+  config:
+    enable-prometheus-metrics: "true"
+    enable-latency-metrics: "true"
+    proxy-connect-timeout: "10"
+    proxy-read-timeout: "60"
+    proxy-send-timeout: "60"
+    log-format-upstream: '$remote_addr - $request_id [$time_local] "$request" $status $body_bytes_sent "$http_referer" "$http_user_agent" $request_length $request_time [$proxy_upstream_name] [$proxy_alternative_upstream_name] $upstream_addr $upstream_response_length $upstream_response_time $upstream_status $req_id'
+
+  # Watch all namespaces
+  watchIngressWithoutClass: true
+
+  # For local development
+  publishService:
+    enabled: false

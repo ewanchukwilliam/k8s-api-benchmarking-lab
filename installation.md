@@ -37,6 +37,7 @@ echo 'export PATH="$HOME/.local/bin:$PATH"' >> ~/.zshrc
 source ~/.zshrc
 ```
 
-
+# Terraform install
+https://developer.hashicorp.com/terraform/tutorials/aws-get-started/install-cli
 
 

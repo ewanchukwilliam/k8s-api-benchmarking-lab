@@ -1,0 +1,15 @@
+# Dev overrides for Prometheus (Kind cluster)
+# Inherits from helm/base/prometheus-local.yaml
+
+prometheus:
+  prometheusSpec:
+    resources:
+      requests:
+        cpu: 100m
+        memory: 256Mi
+
+grafana:
+  resources:
+    requests:
+      cpu: 50m
+      memory: 128Mi

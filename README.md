@@ -14,8 +14,8 @@ the app itself is intentionaly simple ('\health' endpoint returing json) the fou
 - [x] Containerization with docker
 - [x] Kubernetes deployment with kubectl
 - [x] Kubrnetes deployment with eksctl 
-- [ ] Kubrnetes deployment with eksctl with event driven scaling with KEDA
-- [ ] autonomous provisioning with Ansible
+- [x] Kubrnetes deployment with event driven scaling with KEDA
+- [ ] deploy to EKS with terraform
 - [ ] CI/CD with GitLab for build and testing
 - [ ] VM practice
 
