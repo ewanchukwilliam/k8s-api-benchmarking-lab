@@ -19,3 +19,9 @@ terraform/environments/prod/terraform.tfstate.backup
 *.tfstate.*                                                                                 
 .terraform/                                                                                 
 tfplan                                                                                      
+
+# Terraform
+**/.terraform/
+**/tfplan
+*.tfstate
+*.tfstate.*
