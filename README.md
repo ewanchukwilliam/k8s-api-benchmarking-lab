@@ -18,6 +18,7 @@ the app itself is intentionaly simple ('\health' endpoint returing json) the fou
 - [x] deploy to EKS with terraform
 - [x] configure terraform to replace eksctl
 - [ ] fix the initial spinup procedure getting bad pomql data and using all pod resources
+- [ ] deployment busted breaks on step 4 restart spinup script works. janky
 - [ ] configure route53 to be ephemeral and less hardcoded so domains can be swapped out easily. 
 - [ ] see if you can add a database for the application :) then you get s3 experience <3
 - [ ] define a temporary deploymetn procedure for a main branch with a cron job to turn off. 
