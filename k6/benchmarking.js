@@ -3,8 +3,8 @@
 
   export const options = {
     stages: [
-      { duration: '30s', target: 500 },  // Ramp to 200 users
-      { duration: '2m', target: 500 },  // Ramp to 200 users
+      { duration: '3m', target: 400 },  // Ramp to 200 users
+      { duration: '5m', target: 1500 },  // Ramp to 200 users
       { duration: '1m', target: 0 },    // Ramp down
     ],
   };

@@ -1,10 +1,9 @@
 # Prod overrides for Redis (EKS)
-# Persistence enabled, larger resources
+# Note: Persistence disabled - EBS CSI driver not installed
 
 master:
   persistence:
-    enabled: true
-    size: 8Gi
+    enabled: false
   resources:
     requests:
       cpu: 250m

@@ -1,24 +1,19 @@
 # Prod overrides for Prometheus (EKS)
+# Note: Persistence disabled - EBS CSI driver not installed
 
 prometheus:
   prometheusSpec:
-    retention: 15d
+    retention: 3d
     resources:
       requests:
         cpu: 500m
         memory: 1Gi
-    storageSpec:
-      volumeClaimTemplate:
-        spec:
-          accessModes: ["ReadWriteOnce"]
-          resources:
-            requests:
-              storage: 50Gi
+    # storageSpec disabled - requires EBS CSI driver
+    storageSpec: {}
 
 grafana:
   persistence:
-    enabled: true
-    size: 10Gi
+    enabled: false
   resources:
     requests:
       cpu: 200m
