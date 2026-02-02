@@ -15,11 +15,6 @@ eks/service-ssl.yaml
 terraform/environments/prod/terraform.tfstate
 terraform/environments/prod/terraform.tfstate.backup
 
-*.tfstate                                                                                   
-*.tfstate.*                                                                                 
-.terraform/                                                                                 
-tfplan                                                                                      
-
 # Terraform
 **/.terraform/
 **/tfplan
