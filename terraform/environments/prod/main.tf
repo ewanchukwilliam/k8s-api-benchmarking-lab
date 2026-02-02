@@ -108,6 +108,14 @@ module "dns" {
   tags               = local.tags
 }
 
+# ECR Repository
+module "ecr" {
+  source = "../../modules/ecr"
+
+  repository_name = "health-service"
+  tags            = local.tags
+}
+
 # Outputs
 output "cluster_name" {
   description = "EKS cluster name"
@@ -143,4 +151,29 @@ output "certificate_arn" {
 output "name_servers" {
   description = "Update these at your domain registrar"
   value       = module.dns.zone_name_servers
+}
+
+output "hosted_zone_id" {
+  description = "Route53 hosted zone ID"
+  value       = module.dns.zone_id
+}
+
+# ECR Outputs
+output "ecr_repository_url" {
+  description = "ECR repository URL for docker push"
+  value       = module.ecr.repository_url
+}
+
+output "docker_login_command" {
+  description = "Command to login to ECR"
+  value       = "aws ecr get-login-password --region ${var.aws_region} | docker login --username AWS --password-stdin ${module.ecr.repository_url}"
+}
+
+output "docker_push_commands" {
+  description = "Commands to build and push image to ECR"
+  value       = <<-EOT
+    docker build -t health-service:local .
+    docker tag health-service:local ${module.ecr.repository_url}:latest
+    docker push ${module.ecr.repository_url}:latest
+  EOT
 }

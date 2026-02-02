@@ -9,6 +9,8 @@ resources:
 patches:
   - path: patches/deployment.yaml
 
-# Prod-specific labels
-commonLabels:
-  environment: prod
+# Prod-specific labels (using 'labels' instead of deprecated 'commonLabels')
+labels:
+  - pairs:
+      environment: prod
+    includeSelectors: false

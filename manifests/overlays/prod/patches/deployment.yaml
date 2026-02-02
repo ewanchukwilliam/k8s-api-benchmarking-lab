@@ -1,4 +1,5 @@
-# Prod environment: larger resources for EKS
+# Prod environment: EKS with ECR image
+# Note: Image is set via kustomize edit in spinup-prod.sh
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -9,6 +10,9 @@ spec:
     spec:
       containers:
         - name: health-service
+          imagePullPolicy: Always
+          # Remove docker socket mount (EKS uses containerd)
+          volumeMounts: []
           resources:
             requests:
               cpu: 500m
@@ -16,3 +20,21 @@ spec:
             limits:
               cpu: "1"
               memory: 512Mi
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8080
+            initialDelaySeconds: 5
+            periodSeconds: 5
+            timeoutSeconds: 5
+            failureThreshold: 3
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8080
+            initialDelaySeconds: 30
+            periodSeconds: 15
+            timeoutSeconds: 5
+            failureThreshold: 5
+      # Clear the docker socket volume from base
+      volumes: []

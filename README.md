@@ -15,7 +15,7 @@ the app itself is intentionaly simple ('\health' endpoint returing json) the fou
 - [x] Kubernetes deployment with kubectl
 - [x] Kubrnetes deployment with eksctl 
 - [x] Kubrnetes deployment with event driven scaling with KEDA
-- [ ] deploy to EKS with terraform
+- [ ] deploy keda cluster to EKS with terraform
 - [ ] CI/CD with GitLab for build and testing
 - [ ] VM practice
 

@@ -9,6 +9,8 @@ resources:
 patches:
   - path: patches/deployment.yaml
 
-# Dev-specific labels
-commonLabels:
-  environment: dev
+# Dev-specific labels (using 'labels' instead of deprecated 'commonLabels')
+labels:
+  - pairs:
+      environment: dev
+    includeSelectors: false

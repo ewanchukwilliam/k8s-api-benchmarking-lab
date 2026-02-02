@@ -1,0 +1,42 @@
+# Prod overrides for nginx-ingress (EKS/AWS)
+# ACM cert and node selector override are passed via --set in spinup-prod.sh
+
+controller:
+  # Disable Kind-specific hostPort
+  hostPort:
+    enabled: false
+
+  # Node selector (ingress-ready=null is set via --set to override base)
+  nodeSelector:
+    kubernetes.io/os: linux
+
+  # AWS NLB with SSL termination
+  service:
+    type: LoadBalancer
+    annotations:
+      # NLB configuration
+      service.beta.kubernetes.io/aws-load-balancer-type: "nlb"
+      service.beta.kubernetes.io/aws-load-balancer-scheme: "internet-facing"
+      service.beta.kubernetes.io/aws-load-balancer-cross-zone-load-balancing-enabled: "true"
+      # SSL cert annotation is set via --set in spinup-prod.sh
+      service.beta.kubernetes.io/aws-load-balancer-ssl-ports: "443"
+      service.beta.kubernetes.io/aws-load-balancer-backend-protocol: "tcp"
+    targetPorts:
+      http: http
+      https: http  # NLB terminates SSL, forwards to nginx on HTTP
+
+  # Remove Kind tolerations (keep only standard ones)
+  tolerations: []
+
+  # Enable publish service for external DNS
+  publishService:
+    enabled: true
+
+  # Higher resources for prod
+  resources:
+    requests:
+      cpu: 500m
+      memory: 512Mi
+    limits:
+      cpu: "1"
+      memory: 1Gi
