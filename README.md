@@ -1,66 +1,144 @@
-# devopshealthcheckk8testing
+# DevOps Lab - Kubernetes with Scale-to-Zero
 
-# Devops Lab - kubernetes api benchmarking
-- containerized with **docker**
-- deployed to **kubernetes** (kind/minikube)
-- provisioned with **Ansible** onto a linux VM
-- Built & tested with **GitLab CI**
+> **Want to see this running live?** Contact me to request access to the live deployment at `api.codeseeker.dev/page`
+>
+> 📧 **wewanchu@ualberta.ca** | **ewanchukwilliam@gmail.com**
 
-the app itself is intentionaly simple ('\health' endpoint returing json) the foucs is **build systems, automation, and deployment pipelines** not complex business logic.
+---
 
-## Goals
+A production-ready Kubernetes deployment showcasing cost-optimized infrastructure with automatic scaling.
 
-- [x] Basic HTTP service with automated tests
-- [x] Containerization with docker
-- [x] Kubernetes deployment with kubectl
-- [x] Kubrnetes deployment with eksctl 
-- [x] Kubrnetes deployment with event driven scaling with KEDA
-- [x] deploy to EKS with terraform
-- [x] configure terraform to replace eksctl
-- [ ] fix the initial spinup procedure getting bad pomql data and using all pod resources
-- [ ] deployment busted breaks on step 4 restart spinup script works. janky
-- [ ] configure route53 to be ephemeral and less hardcoded so domains can be swapped out easily. 
-- [ ] see if you can add a database for the application :) then you get s3 experience <3
-- [ ] define a temporary deploymetn procedure for a main branch with a cron job to turn off. 
+## Features
 
-## no longer goals for this project
-- [ ] CI/CD with GitLab for build and testing
-- [ ] VM practice
+- **Scale-to-Zero** - Pods scale down to 0 when idle, saving costs
+- **KEDA Autoscaling** - Event-driven scaling based on Prometheus RPS metrics
+- **Custom Warming Page** - Friendly "brewing" page shown during cold starts with auto-retry
+- **Dual Environment** - Local dev (Kind) and production (AWS EKS) with shared manifests
+- **Infrastructure as Code** - Terraform modules for VPC, EKS, ECR, Route53, ACM
+- **Interactive Dashboard** - View real-time pod metrics at `/page`
 
-## tech stack
-- python fastapi
-- docker
-- kubernetes
-- ansible
-- gitlab ci
-- kustomize
-- kind
+## Live Demo
 
-folder structure
+- **Production**: https://api.codeseeker.dev/page (contact for access)
+- **Local**: http://localhost/page (after running spinup-dev.sh)
+
+## Tech Stack
+
+- **App**: Python FastAPI + Redis
+- **Container**: Docker
+- **Orchestration**: Kubernetes (Kind local, EKS prod)
+- **Scaling**: KEDA with Prometheus triggers
+- **Ingress**: nginx-ingress with custom error pages
+- **IaC**: Terraform, Kustomize, Helm
+- **Monitoring**: Prometheus + Grafana
+
+## Project Structure
+
 ```
-src/
-tests/
-k8s/
-ansible/
-Dockerfile
-.gitlab-ci.yml
-README.md
+├── src/                    # Application code
+├── manifests/
+│   ├── base/              # Base Kubernetes manifests
+│   └── overlays/
+│       ├── dev/           # Kind/local overrides
+│       └── prod/          # EKS/AWS overrides
+├── terraform/
+│   ├── modules/           # Reusable TF modules (vpc, eks, ecr, dns)
+│   └── environments/
+│       └── prod/          # Production environment
+├── helm/
+│   ├── base/              # Shared Helm values
+│   ├── dev/               # Dev-specific values
+│   └── prod/              # Prod-specific values
+├── scripts/
+│   ├── spinup-dev.sh      # Bootstrap local Kind cluster
+│   ├── spinup-prod.sh     # Deploy to AWS EKS
+│   └── teardown-prod.sh   # Destroy AWS resources
+└── grafana/               # Custom Grafana dashboards
 ```
 
-# endpoints
-curl http://localhost:8080
-curl http://localhost:8080/health
-curl http://localhost:8080/containers
-curl http://localhost:8080/metrics
+## Quick Start
 
-# build the image
-docker build -t health-service:local .
+### Local Development (Kind)
 
-# run multiple containers from same image
-docker run -d --name health-service -p 8080:8080 -v /var/run/docker.sock:/var/run/docker.sock health-service:local
-docker run -d --name health-service -p 8081:8080 -v /var/run/docker.sock:/var/run/docker.sock health-service:local
-docker run -d --name health-service -p 8082:8080 -v /var/run/docker.sock:/var/run/docker.sock health-service:local
+```bash
+./scripts/spinup-dev.sh
+```
 
-# run pytest 
+This creates a local Kind cluster with:
+- Prometheus + Grafana
+- KEDA for autoscaling
+- nginx-ingress
+- Redis
+- Your app with scale-to-zero
+
+Access the dashboard: http://localhost/page
+
+### Production (AWS EKS)
+
+```bash
+./scripts/spinup-prod.sh
+```
+
+This provisions:
+- VPC with public/private subnets
+- EKS cluster (t3.small nodes, autoscaling 1-3)
+- ECR repository
+- ACM certificate + Route53 DNS
+- Full monitoring stack
+
+Access the dashboard: https://api.codeseeker.dev/page
+
+## Endpoints
+
+| Endpoint | Description |
+|----------|-------------|
+| `/` | Service info |
+| `/health` | Health check with CPU/memory stats |
+| `/metrics` | Detailed process metrics |
+| `/page` | **Interactive monitoring dashboard** |
+
+## Scale-to-Zero Flow
+
+1. No traffic → KEDA scales pods to 0
+2. Request arrives → nginx returns custom "brewing" page
+3. Page auto-retries every 2 seconds
+4. KEDA sees Prometheus metrics spike → scales up pod
+5. Pod ready → auto-refresh loads the app
+
+## Cost Optimization (t3.small)
+
+| Component | Memory Request |
+|-----------|----------------|
+| nginx-ingress | 64Mi |
+| KEDA | ~128Mi |
+| Prometheus | 256Mi |
+| Grafana | 64Mi |
+| health-service | 128Mi |
+| Redis | 64Mi |
+
+Total: ~700Mi on t3.small (~1.5GB usable)
+
+## Environment Variables
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `WORKERS` | 10 | Uvicorn worker count (prod uses 2) |
+| `REDIS_HOST` | localhost | Redis hostname |
+| `PORT` | 8080 | App port |
+
+## Development
+
+```bash
+# Run tests
 source .venv/bin/activate && pytest tests/ -v
 
+# Build image
+docker build -t health-service:local .
+
+# Apply changes to dev
+kubectl apply -k manifests/overlays/dev/
+
+# Apply changes to prod
+kubectl apply -k manifests/overlays/prod/
+kubectl set image deployment/health-service health-service=<ECR_URL>:latest
+```
